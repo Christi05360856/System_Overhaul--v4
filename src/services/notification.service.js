@@ -64,7 +64,7 @@ export async function requestPushPermission() {
     const registration = await navigator.serviceWorker.ready;
 
     const token = await getToken(messaging, {
-      vapidKey:            VAPID_KEY,
+      vapidKey:     BK0pgQRV8JMxn0g8bDVJmz8B72NeOpkoYHop0FO2mP9eAI62kxr1LGR5V8XjYlZx5K0BscifgM4ABSEpao1K5Mg      VAPID_KEY,
       serviceWorkerRegistration: registration
     });
 
