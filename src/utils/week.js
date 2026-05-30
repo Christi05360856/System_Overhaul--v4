@@ -53,4 +53,8 @@ export function formatCountdown(ms) {
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
-export default { getWeekInfo, getCurrentWeekId, getPreviousWeekId, getDisplayWeek, getTimeUntilNextWeek, formatCountdown };
+export function getTodayString() {
+  return new Date().toISOString().split('T')[0];
+}
+
+export default { getWeekInfo, getCurrentWeekId, getPreviousWeekId, getDisplayWeek, getTimeUntilNextWeek, formatCountdown, getTodayString };
