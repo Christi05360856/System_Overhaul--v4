@@ -298,75 +298,187 @@
         </div>
       </div>
 
-      <div class="stat-grid" id="profile-stats-grid">
-        <div class="stat-card"><div class="stat-value" id="p-total-xp">0</div><div class="stat-label">✨ Total XP</div></div>
-        <div class="stat-card"><div class="stat-value" id="p-level">1</div><div class="stat-label">⭐ Level</div></div>
-        <div class="stat-card"><div class="stat-value" id="p-streak">0</div><div class="stat-label">🔥 Streak</div></div>
-        <div class="stat-card"><div class="stat-value" id="p-quizzes">0</div><div class="stat-label">📝 Quizzes</div></div>
-        <div class="stat-card"><div class="stat-value" id="p-best">0%</div><div class="stat-label">🎯 Best Score</div></div>
-        <div class="stat-card"><div class="stat-value" id="p-longest-streak">0</div><div class="stat-label">🏆 Best Streak</div></div>
+      <!-- Profile sub-tabs -->
+      <div class="profile-tabs">
+        <button class="profile-tab-btn active" data-tab="stats">📊 Stats</button>
+        <button class="profile-tab-btn"        data-tab="achievements">🏅 Achievements</button>
       </div>
 
-      <div style="margin:16px 0;padding:16px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-lg)">
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-          <span style="font-weight:700;font-size:13px;color:var(--text-secondary)">Level <span id="p-lvl-current">1</span></span>
-          <span style="font-weight:700;font-size:13px;color:var(--text-muted)"><span id="p-xp-current">0</span> / <span id="p-xp-needed">100</span> XP</span>
+      <!-- TAB: Stats -->
+      <div id="profile-tab-stats">
+        <div class="stat-grid" id="profile-stats-grid">
+          <div class="stat-card"><div class="stat-value" id="p-total-xp">0</div><div class="stat-label">✨ Total XP</div></div>
+          <div class="stat-card"><div class="stat-value" id="p-level">1</div><div class="stat-label">⭐ Level</div></div>
+          <div class="stat-card"><div class="stat-value" id="p-streak">0</div><div class="stat-label">🔥 Streak</div></div>
+          <div class="stat-card"><div class="stat-value" id="p-quizzes">0</div><div class="stat-label">📝 Quizzes</div></div>
+          <div class="stat-card"><div class="stat-value" id="p-best">0%</div><div class="stat-label">🎯 Best Score</div></div>
+          <div class="stat-card"><div class="stat-value" id="p-longest-streak">0</div><div class="stat-label">🏆 Best Streak</div></div>
         </div>
-        <div class="progress-bar-track" style="height:10px">
-          <div class="progress-bar-fill" id="p-xp-fill" style="width:0%"></div>
+
+        <div style="margin:16px 0;padding:16px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-lg)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-weight:700;font-size:13px;color:var(--text-secondary)">Level <span id="p-lvl-current">1</span></span>
+            <span style="font-weight:700;font-size:13px;color:var(--text-muted)"><span id="p-xp-current">0</span> / <span id="p-xp-needed">100</span> XP</span>
+          </div>
+          <div class="progress-bar-track" style="height:10px">
+            <div class="progress-bar-fill" id="p-xp-fill" style="width:0%"></div>
+          </div>
+          <p style="font-size:11px;color:var(--text-muted);margin-top:6px;font-weight:600">
+            Level <span id="p-lvl-next">2</span> at <span id="p-xp-needed-2">100</span> XP
+          </p>
         </div>
-        <p style="font-size:11px;color:var(--text-muted);margin-top:6px;font-weight:600">
-          Level <span id="p-lvl-next">2</span> at <span id="p-xp-needed-2">100</span> XP
+
+        <!-- Contact Details — EDIT (shown when not yet complete) -->
+        <div class="contact-section" id="contact-edit-section">
+          <h4><i class="fas fa-phone"></i> Contact Details
+            <span class="contact-required" id="contact-required-note">— Required for reward eligibility</span>
+          </h4>
+          <div class="contact-form">
+            <input type="tel" id="profile-phone" placeholder="Phone number (e.g. 08012345678)" autocomplete="tel" />
+            <select id="profile-network">
+              <option value="">Select network provider</option>
+              <option value="MTN">MTN</option>
+              <option value="Airtel">Airtel</option>
+              <option value="Glo">Glo</option>
+              <option value="9mobile">9mobile</option>
+            </select>
+            <button id="save-contact-btn" class="btn-primary">
+              <i class="fas fa-save"></i> Save Contact Info
+            </button>
+          </div>
+        </div>
+
+        <!-- Contact Details — DISPLAY (shown after complete) -->
+        <div class="contact-section hidden" id="contact-display-section">
+          <h4><i class="fas fa-phone"></i> Contact Details — ✅ Saved</h4>
+          <div class="contact-display">
+            <div class="contact-display-row">
+              <span class="contact-display-label">Phone</span>
+              <span class="contact-display-value" id="contact-display-phone">—</span>
+            </div>
+            <div class="contact-display-row">
+              <span class="contact-display-label">Network</span>
+              <span class="contact-display-value" id="contact-display-network">—</span>
+            </div>
+            <p class="contact-display-note">Contact admin via Settings to update your details.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Achievements -->
+      <div id="profile-tab-achievements" class="hidden">
+        <p style="font-size:13px;color:var(--text-muted);font-weight:600;margin-bottom:16px;text-align:center">
+          Complete quizzes and milestones to unlock achievements
         </p>
-      </div>
-
-      <div class="contact-section">
-        <h4><i class="fas fa-phone"></i> Contact Details
-          <span class="contact-required" id="contact-required-note">— Required for reward eligibility</span>
-        </h4>
-        <div class="contact-form">
-          <input type="tel" id="profile-phone" placeholder="Phone number (e.g. 08012345678)" autocomplete="tel" />
-          <select id="profile-network">
-            <option value="">Select network provider</option>
-            <option value="MTN">MTN</option>
-            <option value="Airtel">Airtel</option>
-            <option value="Glo">Glo</option>
-            <option value="9mobile">9mobile</option>
-          </select>
-          <button id="save-contact-btn" class="btn-primary">
-            <i class="fas fa-save"></i> Save Contact Info
-          </button>
+        <div class="achievements-grid" id="achievements-grid">
+          <!-- Rendered by app.js renderAchievements() -->
+          <div class="empty-state" style="grid-column:1/-1">
+            <p>Loading achievements…</p>
+          </div>
         </div>
       </div>
 
-      <div style="margin-top:16px;padding:16px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-lg)">
-        <h4 style="font-weight:800;color:var(--text-primary);margin-bottom:12px;font-size:15px">
-          <i class="fas fa-palette"></i> Theme Preference
-        </h4>
-        <div style="display:flex;gap:10px">
-          <button class="btn-secondary btn-sm theme-pref-btn" data-theme="light">☀️ Light</button>
-          <button class="btn-secondary btn-sm theme-pref-btn" data-theme="dark">🌙 Dark</button>
-          <button class="btn-secondary btn-sm theme-pref-btn" data-theme="system">💻 System</button>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN: SETTINGS ══ -->
+  <div id="screen-settings" class="screen hidden">
+    <div style="max-width:720px;margin:0 auto">
+
+      <div style="text-align:center;margin-bottom:20px;padding:16px 0">
+        <div style="font-size:40px;margin-bottom:8px">⚙️</div>
+        <h2 style="font-size:20px;font-weight:900;color:var(--text-primary)">Settings</h2>
+      </div>
+
+      <!-- Appearance -->
+      <div class="settings-group">
+        <div class="settings-group-label">Appearance</div>
+        <div class="settings-row">
+          <div class="settings-row-icon yellow">🌙</div>
+          <div class="settings-row-text">
+            <div class="settings-row-title">Dark Mode</div>
+            <div class="settings-row-sub">Easier on the eyes at night</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="setting-dark-mode" />
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
 
-      <div style="margin-top:20px">
-        <button id="logout-btn" class="btn-danger btn-full">
-          <i class="fas fa-sign-out-alt"></i> Sign Out
-        </button>
+      <!-- Sound & Notifications -->
+      <div class="settings-group">
+        <div class="settings-group-label">Sound & Notifications</div>
+        <div class="settings-row">
+          <div class="settings-row-icon blue">🔊</div>
+          <div class="settings-row-text">
+            <div class="settings-row-title">Sound Effects</div>
+            <div class="settings-row-sub">Quiz feedback sounds</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="setting-sound" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-icon yellow">🔔</div>
+          <div class="settings-row-text">
+            <div class="settings-row-title">Push Notifications</div>
+            <div class="settings-row-sub">Streak reminders, reward alerts</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="setting-notifications" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
       </div>
+
+      <!-- Support -->
+      <div class="settings-group">
+        <div class="settings-group-label">Support</div>
+        <div class="settings-row" style="cursor:pointer" id="whatsapp-contact-btn">
+          <div class="settings-row-icon green">💬</div>
+          <div class="settings-row-text">
+            <div class="settings-row-title">Contact Admin</div>
+            <div class="settings-row-sub">WhatsApp support</div>
+          </div>
+          <a class="whatsapp-btn" aria-label="Contact on WhatsApp">💬</a>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-icon purple">📋</div>
+          <div class="settings-row-text">
+            <div class="settings-row-title">App Version</div>
+            <div class="settings-row-sub">v4.0 — ScriptureQuest Overhaul</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Account -->
+      <div class="settings-group">
+        <div class="settings-group-label">Account</div>
+        <div class="settings-row" style="cursor:pointer" id="settings-logout-btn">
+          <div class="settings-row-icon red">🚪</div>
+          <div class="settings-row-text">
+            <div class="settings-row-title" style="color:var(--error)">Sign Out</div>
+            <div class="settings-row-sub">Log out of your account</div>
+          </div>
+          <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:14px"></i>
+        </div>
+      </div>
+
     </div>
   </div>
 
   <!-- ══ BOTTOM NAV ══ -->
   <nav id="bottom-nav" class="bottom-nav hidden" aria-label="Main navigation">
-    <button class="nav-item active" data-screen="landing" aria-label="Home"><i class="fas fa-home"></i><span>Home</span></button>
-    <button class="nav-item" data-screen="leaderboard" aria-label="Leaderboard"><i class="fas fa-trophy"></i><span>Ranks</span></button>
-    <button class="nav-item" data-screen="rewards" aria-label="Rewards"><i class="fas fa-gift"></i><span>Rewards</span></button>
-    <button class="nav-item" data-screen="profile" aria-label="Profile"><i class="fas fa-user"></i><span>Profile</span></button>
+    <button class="nav-item active" data-screen="landing"     aria-label="Home"><i class="fas fa-home"></i><span>Home</span></button>
+    <button class="nav-item"        data-screen="leaderboard" aria-label="Leaderboard"><i class="fas fa-trophy"></i><span>Ranks</span></button>
+    <button class="nav-item"        data-screen="rewards"     aria-label="Rewards"><i class="fas fa-gift"></i><span>Rewards</span></button>
+    <button class="nav-item"        data-screen="profile"     aria-label="Profile"><i class="fas fa-user"></i><span>Profile</span></button>
+    <button class="nav-item"        data-screen="settings"    aria-label="Settings"><i class="fas fa-cog"></i><span>Settings</span></button>
   </nav>
 
-<!-- ══ AUTH MODAL ══ -->
+  <!-- ══ AUTH MODAL ══ -->
   <div id="auth-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
     <div class="modal-content" style="max-width:480px">
       <div style="font-size:40px;margin-bottom:8px">📖</div>
@@ -422,4 +534,5 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script type="module" src="/src/app.js"></script>
 </body>
-</html>
+      </html>
+   
