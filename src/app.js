@@ -31,13 +31,18 @@ let _localQuestions = null;
 async function getLocalQuestions() {
   if (_localQuestions) return _localQuestions;
   try {
-    // Try to load questions from the questions module if available
-    const mod = await import('./questions.js').catch(() => null);
-    if (mod?.questions?.length) { _localQuestions = mod.questions; return _localQuestions; }
-    // Fallback: tiny sample set so app doesn't crash
-    _localQuestions = [];
-    return _localQuestions;
-  } catch { return []; }
+    // Vite resolves absolute imports correctly in both dev and production
+    const mod = await import('/src/questions.js');
+    if (mod?.questions?.length) {
+      _localQuestions = mod.questions;
+      console.log('[Quiz] Loaded', _localQuestions.length, 'questions');
+      return _localQuestions;
+    }
+  } catch (e) {
+    console.warn('[Quiz] questions.js not found:', e.message);
+  }
+  _localQuestions = [];
+  return _localQuestions;
 }
 
 // Lazy-load quiz page
@@ -77,6 +82,7 @@ function showScreen(name) {
   if (name === 'landing')     initLandingScreen();
   if (name === 'settings')    initSettingsScreen();
 }
+
 // ============================================
 // AUTH LISTENER
 // ============================================
@@ -95,7 +101,6 @@ initAuthListener(
     document.getElementById('bottom-nav')?.classList.add('hidden');
   }
 );
-
 // ============================================
 // LANDING SCREEN
 // ============================================
@@ -200,7 +205,7 @@ function checkNewWeek() {
     }
   }
   localStorage.setItem(LAST_SEEN_WEEK, currentWeekId);
-             }
+}
 // ============================================
 // LEADERBOARD SCREEN
 // ============================================
@@ -305,30 +310,37 @@ function initProfileScreen() {
     if (contactDisplay) contactDisplay.classList.add('hidden');
     if (el('profile-phone'))   el('profile-phone').value   = profile?.phoneNumber || '';
     if (el('profile-network')) el('profile-network').value = profile?.networkProvider || '';
-         }
-         if (stats) {
-    const xp      = stats.totalXp     || 0;
-    const level   = stats.level       || 1;
-    const needed  = Math.ceil(100 * Math.pow(level, 1.5));
-    const current = stats.currentLevelXp || 0;
-    const pct     = Math.min(100, Math.round((current / needed) * 100));
-
-    if (el('p-total-xp'))       el('p-total-xp').textContent       = xp.toLocaleString();
-    if (el('p-level'))          el('p-level').textContent           = level;
-    if (el('p-streak'))         el('p-streak').textContent          = stats.currentStreak  || 0;
-    if (el('p-quizzes'))        el('p-quizzes').textContent         = stats.quizzesTaken   || 0;
-    if (el('p-best'))           el('p-best').textContent            = `${stats.bestScore   || 0}%`;
-    if (el('p-longest-streak')) el('p-longest-streak').textContent  = stats.longestStreak  || 0;
-    if (el('p-lvl-current'))    el('p-lvl-current').textContent     = level;
-    if (el('p-xp-current'))     el('p-xp-current').textContent      = current.toLocaleString();
-    if (el('p-xp-needed'))      el('p-xp-needed').textContent       = needed.toLocaleString();
-    if (el('p-xp-fill'))        el('p-xp-fill').style.width         = `${pct}%`;
-    if (el('p-lvl-next'))       el('p-lvl-next').textContent        = level + 1;
-    if (el('p-xp-needed-2'))    el('p-xp-needed-2').textContent     = needed.toLocaleString();
-
-    // Render achievements
-    renderAchievements(stats);
   }
+
+  // Use stats if available, otherwise use empty defaults
+  const safeStats = stats || {
+    totalXp: 0, level: 1, currentLevelXp: 0,
+    currentStreak: 0, longestStreak: 0,
+    quizzesTaken: 0, bestScore: 0, perfectScores: 0,
+    topThreeFinishes: 0
+  };
+
+  const xp      = safeStats.totalXp     || 0;
+  const level   = safeStats.level       || 1;
+  const needed  = Math.ceil(100 * Math.pow(level, 1.5));
+  const current = safeStats.currentLevelXp || 0;
+  const pct     = Math.min(100, Math.round((current / needed) * 100));
+
+  if (el('p-total-xp'))       el('p-total-xp').textContent       = xp.toLocaleString();
+  if (el('p-level'))          el('p-level').textContent           = level;
+  if (el('p-streak'))         el('p-streak').textContent          = safeStats.currentStreak  || 0;
+  if (el('p-quizzes'))        el('p-quizzes').textContent         = safeStats.quizzesTaken   || 0;
+  if (el('p-best'))           el('p-best').textContent            = `${safeStats.bestScore   || 0}%`;
+  if (el('p-longest-streak')) el('p-longest-streak').textContent  = safeStats.longestStreak  || 0;
+  if (el('p-lvl-current'))    el('p-lvl-current').textContent     = level;
+  if (el('p-xp-current'))     el('p-xp-current').textContent      = current.toLocaleString();
+  if (el('p-xp-needed'))      el('p-xp-needed').textContent       = needed.toLocaleString();
+  if (el('p-xp-fill'))        el('p-xp-fill').style.width         = `${pct}%`;
+  if (el('p-lvl-next'))       el('p-lvl-next').textContent        = level + 1;
+  if (el('p-xp-needed-2'))    el('p-xp-needed-2').textContent     = needed.toLocaleString();
+
+  // Always render achievements — locked ones show for new users too
+  renderAchievements(safeStats);
 
   // Highlight active theme button
   const currentTheme = getState('theme')?.current || 'light';
@@ -337,7 +349,6 @@ function initProfileScreen() {
     btn.classList.toggle('btn-secondary', btn.dataset.theme !== currentTheme);
   });
 }
-
 // Profile sub-tabs (Stats / Achievements)
 function switchProfileTab(tab) {
   document.querySelectorAll('.profile-tab-btn').forEach(b =>
@@ -678,7 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.profile-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchProfileTab(btn.dataset.tab));
   });
-       
+
   // Profile contact save
   document.getElementById('save-contact-btn')?.addEventListener('click', async () => {
     const user    = getCurrentUser();
@@ -701,7 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Contact Info';
     }
   });
-
+       
   // Theme pref buttons (in profile)
   document.querySelectorAll('.theme-pref-btn').forEach(btn => {
     btn.addEventListener('click', () => { setTheme(btn.dataset.theme); initProfileScreen(); });
@@ -756,7 +767,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Settings: WhatsApp button
   document.getElementById('whatsapp-contact-btn')?.addEventListener('click', () => {
-    window.open('https://wa.me/+2349167055488?text=Hi%2C%20I%20need%20help%20with%20ScriptureQuest', '_blank');
+    window.open('https://wa.me/+2349030000000?text=Hi%2C%20I%20need%20help%20with%20ScriptureQuest', '_blank');
   });
 
   // Level up modal
