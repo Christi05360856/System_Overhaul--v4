@@ -42,6 +42,8 @@ export async function initQuizScreen(sessionData, callbacks) {
   _currentIndex = sessionData.currentIndex || 0;
   _timeLeft    = sessionData.timeLeft ?? QUIZ_DURATION_SECS;
   _submitting  = false;
+  // Store localSubmit fn if provided (fallback mode)
+  _callbacks._localSubmit = callbacks?.localSubmit || null;
 
   // Update store
   setState('quiz', {
@@ -323,7 +325,13 @@ async function handleSubmit(timeExpired = false) {
   document.querySelectorAll('.option').forEach(b => b.disabled = true);
 
   try {
-    const result = await submitQuizSession(_sessionId, _userAnswers);
+    let result;
+    if (_callbacks._localSubmit) {
+      // Local fallback mode — no Cloud Function
+      result = await _callbacks._localSubmit(_sessionId, _userAnswers);
+    } else {
+      result = await submitQuizSession(_sessionId, _userAnswers);
+    }
     clearQuizStorage();
     _callbacks.onComplete?.(result);
   } catch (err) {
