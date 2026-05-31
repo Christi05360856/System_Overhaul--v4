@@ -1,11 +1,13 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/admin",
       "destination": "/admin.html"
     },
     {
-      "source": "/((?!admin).*)",
+      "source": "/((?!api|admin|assets|icons|sw\\.js|manifest\\.json).*)",
       "destination": "/index.html"
     }
   ]
