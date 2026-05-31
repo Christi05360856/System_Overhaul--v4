@@ -311,8 +311,7 @@ function initProfileScreen() {
     if (el('profile-phone'))   el('profile-phone').value   = profile?.phoneNumber || '';
     if (el('profile-network')) el('profile-network').value = profile?.networkProvider || '';
   }
-
-  // Use stats if available, otherwise use empty defaults
+    // Use stats if available, otherwise use empty defaults
   const safeStats = stats || {
     totalXp: 0, level: 1, currentLevelXp: 0,
     currentStreak: 0, longestStreak: 0,
@@ -349,6 +348,7 @@ function initProfileScreen() {
     btn.classList.toggle('btn-secondary', btn.dataset.theme !== currentTheme);
   });
 }
+
 // Profile sub-tabs (Stats / Achievements)
 function switchProfileTab(tab) {
   document.querySelectorAll('.profile-tab-btn').forEach(b =>
@@ -365,28 +365,172 @@ function renderAchievements(stats) {
   const streak  = stats.longestStreak  || 0;
   const xp      = stats.totalXp        || 0;
   const perfect = stats.perfectScores  || 0;
+  const top3    = stats.topThreeFinishes || 0;
 
-  const achievements = [
-    { id:'first_quiz',  icon:'📖', title:'First Quiz',       desc:'Complete your first quiz',      done: quizzes >= 1 },
-    { id:'quiz10',      icon:'📚', title:'10 Quizzes',        desc:'Complete 10 quizzes',            done: quizzes >= 10 },
-    { id:'quiz50',      icon:'🎓', title:'Bible Scholar',     desc:'Complete 50 quizzes',            done: quizzes >= 50 },
-    { id:'quiz100',     icon:'👑', title:'Legend',            desc:'Complete 100 quizzes',           done: quizzes >= 100 },
-    { id:'streak7',     icon:'🔥', title:'Week Warrior',      desc:'7-day streak',                   done: streak >= 7 },
-    { id:'streak30',    icon:'🌟', title:'Monthly Champion',  desc:'30-day streak',                  done: streak >= 30 },
-    { id:'perfect1',    icon:'💯', title:'Perfectionist',     desc:'Score 100% on a quiz',           done: perfect >= 1 },
-    { id:'perfect5',    icon:'🏆', title:'Perfect 5',         desc:'5 perfect scores',               done: perfect >= 5 },
-    { id:'xp500',       icon:'⭐', title:'XP Rising',         desc:'Earn 500 XP',                    done: xp >= 500 },
-    { id:'xp5000',      icon:'💫', title:'XP Master',         desc:'Earn 5,000 XP',                  done: xp >= 5000 },
-    { id:'xp20000',     icon:'🚀', title:'XP Legend',         desc:'Earn 20,000 XP',                 done: xp >= 20000 },
-    { id:'top3',        icon:'🥇', title:'Podium Finisher',   desc:'Finish Top 3 weekly',            done: (stats.topThreeFinishes||0) >= 1 },
+  // Full badge definitions with tiers and progress tracking
+  const BADGES = [
+    // ── BRONZE tier ──
+    {
+      id: 'first_quiz', icon: '📖', tier: 'bronze', crown: '🥉',
+      name: 'First Steps', req: 'Complete your first quiz',
+      done: quizzes >= 1,
+      progress: Math.min(100, (quizzes / 1) * 100)
+    },
+    {
+      id: 'streak3', icon: '🔥', tier: 'bronze', crown: '🥉',
+      name: 'On Fire', req: '3-day streak',
+      done: streak >= 3,
+      progress: Math.min(100, (streak / 3) * 100)
+    },
+    {
+      id: 'perfect1', icon: '💯', tier: 'bronze', crown: '🥉',
+      name: 'Perfectionist', req: 'Score 100% once',
+      done: perfect >= 1,
+      progress: Math.min(100, (perfect / 1) * 100)
+    },
+    {
+      id: 'xp500', icon: '⭐', tier: 'bronze', crown: '🥉',
+      name: 'XP Rising', req: 'Earn 500 XP',
+      done: xp >= 500,
+      progress: Math.min(100, (xp / 500) * 100)
+    },
+
+    // ── SILVER tier ──
+    {
+      id: 'quiz10', icon: '📚', tier: 'silver', crown: '🥈',
+      name: 'Dedicated', req: 'Complete 10 quizzes',
+      done: quizzes >= 10,
+      progress: Math.min(100, (quizzes / 10) * 100)
+    },
+    {
+      id: 'streak7', icon: '🌟', tier: 'silver', crown: '🥈',
+      name: 'Week Warrior', req: '7-day streak',
+      done: streak >= 7,
+      progress: Math.min(100, (streak / 7) * 100)
+    },
+    {
+      id: 'perfect3', icon: '🎯', tier: 'silver', crown: '🥈',
+      name: 'Sharp Mind', req: '3 perfect scores',
+      done: perfect >= 3,
+      progress: Math.min(100, (perfect / 3) * 100)
+    },
+    {
+      id: 'xp2000', icon: '💫', tier: 'silver', crown: '🥈',
+      name: 'XP Grinder', req: 'Earn 2,000 XP',
+      done: xp >= 2000,
+      progress: Math.min(100, (xp / 2000) * 100)
+    },
+    // ── GOLD tier ──
+    {
+      id: 'quiz50', icon: '🎓', tier: 'gold', crown: '🥇',
+      name: 'Bible Scholar', req: 'Complete 50 quizzes',
+      done: quizzes >= 50,
+      progress: Math.min(100, (quizzes / 50) * 100)
+    },
+    {
+      id: 'streak30', icon: '🔆', tier: 'gold', crown: '🥇',
+      name: 'Monthly Champion', req: '30-day streak',
+      done: streak >= 30,
+      progress: Math.min(100, (streak / 30) * 100)
+    },
+    {
+      id: 'top3', icon: '🏆', tier: 'gold', crown: '🥇',
+      name: 'Podium Finisher', req: 'Finish Top 3 weekly',
+      done: top3 >= 1,
+      progress: Math.min(100, (top3 / 1) * 100)
+    },
+    {
+      id: 'xp10000', icon: '💎', tier: 'gold', crown: '🥇',
+      name: 'XP Master', req: 'Earn 10,000 XP',
+      done: xp >= 10000,
+      progress: Math.min(100, (xp / 10000) * 100)
+    },
+
+    // ── LEGENDARY tier ──
+    {
+      id: 'quiz100', icon: '👑', tier: 'legendary', crown: '✨',
+      name: 'Legend', req: 'Complete 100 quizzes',
+      done: quizzes >= 100,
+      progress: Math.min(100, (quizzes / 100) * 100)
+    },
+    {
+      id: 'streak100', icon: '🚀', tier: 'legendary', crown: '✨',
+      name: 'Unstoppable', req: '100-day streak',
+      done: streak >= 100,
+      progress: Math.min(100, (streak / 100) * 100)
+    },
+    {
+      id: 'perfect10', icon: '🌠', tier: 'legendary', crown: '✨',
+      name: 'Flawless Master', req: '10 perfect scores',
+      done: perfect >= 10,
+      progress: Math.min(100, (perfect / 10) * 100)
+    },
+    {
+      id: 'xp20000', icon: '⚡', tier: 'legendary', crown: '✨',
+      name: 'XP Legend', req: 'Earn 20,000 XP',
+      done: xp >= 20000,
+      progress: Math.min(100, (xp / 20000) * 100)
+    }
   ];
 
-  container.innerHTML = achievements.map(a => `
-    <div class="achievement-card ${a.done ? 'unlocked' : 'locked'}">
-      <div class="ach-icon">${a.done ? a.icon : '🔒'}</div>
-      <div class="ach-title">${a.title}</div>
-      <div class="ach-desc">${a.desc}</div>
-      ${a.done ? '<div class="ach-badge">Unlocked</div>' : ''}
+  const earned      = BADGES.filter(b => b.done);
+  const bronzeCount = earned.filter(b => b.tier === 'bronze').length;
+  const silverCount = earned.filter(b => b.tier === 'silver').length;
+  const goldCount   = earned.filter(b => b.tier === 'gold').length;
+  const legCount    = earned.filter(b => b.tier === 'legendary').length;
+
+  // Update earned count in header
+  const countEl = document.getElementById('badges-earned-count');
+  if (countEl) countEl.textContent = `${earned.length} / ${BADGES.length} earned`;
+
+  // Update featured badge on profile header
+  const featuredEl = document.getElementById('profile-featured-badge');
+  if (featuredEl) {
+    const best = earned.slice().reverse()[0]; // most recently earned category
+    if (best) {
+      featuredEl.innerHTML = `${best.icon} ${best.name}`;
+      featuredEl.classList.remove('hidden');
+    }
+  }
+
+  // Stats summary bar
+  const statsBar = document.getElementById('badges-stats-bar');
+  if (statsBar) {
+    statsBar.innerHTML = `
+      <div class="badges-stat-chip chip-bronze">
+        <div class="badges-stat-chip-value">${bronzeCount}</div>
+        <div class="badges-stat-chip-label">🥉 Bronze</div>
+      </div>
+      <div class="badges-stat-chip chip-silver">
+        <div class="badges-stat-chip-value">${silverCount}</div>
+        <div class="badges-stat-chip-label">🥈 Silver</div>
+      </div>
+      <div class="badges-stat-chip chip-gold">
+        <div class="badges-stat-chip-value">${goldCount}</div>
+        <div class="badges-stat-chip-label">🥇 Gold</div>
+      </div>
+      <div class="badges-stat-chip chip-legendary">
+        <div class="badges-stat-chip-value">${legCount}</div>
+        <div class="badges-stat-chip-label">✨ Legend</div>
+      </div>`;
+   }       
+  // Render badge cards
+  container.innerHTML = BADGES.map(b => `
+    <div class="badge-card tier-${b.tier} ${b.done ? 'badge-unlocked' : 'badge-locked'}">
+      <div class="badge-icon-wrap">
+        <div class="badge-icon">
+          ${b.done ? b.icon : '🔒'}
+        </div>
+        ${b.done ? `<span class="badge-tier-crown">${b.crown}</span>` : ''}
+      </div>
+      <div class="badge-name">${b.name}</div>
+      <div class="badge-req">${b.req}</div>
+      <span class="badge-tier-label">${b.tier}</span>
+      ${!b.done && b.progress > 0 ? `
+        <div class="badge-progress-bar">
+          <div class="badge-progress-fill" style="width:${Math.round(b.progress)}%"></div>
+        </div>
+      ` : ''}
     </div>`).join('');
 }
 
@@ -689,7 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.profile-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchProfileTab(btn.dataset.tab));
   });
-
+      
   // Profile contact save
   document.getElementById('save-contact-btn')?.addEventListener('click', async () => {
     const user    = getCurrentUser();
@@ -712,7 +856,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Contact Info';
     }
   });
-       
+
   // Theme pref buttons (in profile)
   document.querySelectorAll('.theme-pref-btn').forEach(btn => {
     btn.addEventListener('click', () => { setTheme(btn.dataset.theme); initProfileScreen(); });
@@ -802,4 +946,4 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================
 // GLOBAL SQ NAMESPACE
 // ============================================
-window.SQ = { switchAuthTab, closeAuthModal, showConfirm, showScreen, showToast };  
+window.SQ = { switchAuthTab, closeAuthModal, showConfirm, showScreen, showToast };   
