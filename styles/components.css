@@ -124,6 +124,7 @@
   color: var(--text-muted);
   font-weight: 500;
 }
+
 /* ============================================
    AUTH MODAL
    ============================================ */
@@ -173,6 +174,7 @@
 
 .auth-error.error   { background: var(--error-bg);   color: var(--error-text);   border: 1px solid var(--error-border); }
 .auth-error.success { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+
 
 /* ============================================
    QUIZ SCREEN
@@ -270,7 +272,6 @@
   background: var(--option-hover-bg);
   transform: translateX(4px);
 }
-
 .option-letter {
   display: flex;
   align-items: center;
@@ -290,6 +291,7 @@
   background: var(--accent-primary);
   color: white;
 }
+
 /* Option states */
 .option.correct {
   background: var(--success-bg) !important;
@@ -359,7 +361,6 @@
 
 .feedback-area.correct-fb .feedback-msg { color: var(--success-text); }
 .feedback-area.wrong-fb   .feedback-msg { color: var(--error-text); }
-
 /* Nav controls */
 .nav-controls {
   display: flex;
@@ -452,7 +453,6 @@
 
 .score-badge.pass { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
 .score-badge.fail { background: var(--error-bg);   color: var(--error-text);   border: 1px solid var(--error-border); }
-
 .xp-earned {
   font-size: var(--text-xl);
   font-weight: 800;
@@ -671,7 +671,6 @@
   border-color: var(--success-border);
   box-shadow: 0 4px 12px rgba(34,197,94,0.12);
 }
-
 .reward-tier--claimed {
   background: var(--warning-bg);
   border-color: var(--warning-border);
@@ -772,7 +771,6 @@
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
-
 /* Contact details */
 .contact-section {
   margin: var(--space-5) 0;
@@ -883,8 +881,7 @@
 }
 
 .fixed-logout:hover { background: var(--error-border); }
-   
-/* ============================================
+  /* ============================================
    SKELETON LOADERS
    ============================================ */
 
@@ -1059,3 +1056,294 @@
   text-decoration:none;
 }
 .whatsapp-btn:hover { transform:scale(1.1); box-shadow:0 6px 20px rgba(37,211,102,0.5); }
+
+/* ============================================
+   BADGE SYSTEM v2 — Enhanced Visual Cards
+   ============================================ */
+
+/* ── Badge Tier Colors ── */
+:root {
+  --tier-bronze:        #cd7f32;
+  --tier-bronze-bg:     rgba(205,127,50,0.12);
+  --tier-bronze-border: rgba(205,127,50,0.35);
+  --tier-silver:        #a8a9ad;
+  --tier-silver-bg:     rgba(168,169,173,0.12);
+  --tier-silver-border: rgba(168,169,173,0.35);
+  --tier-gold:          #ffd700;
+  --tier-gold-bg:       rgba(255,215,0,0.12);
+  --tier-gold-border:   rgba(255,215,0,0.35);
+  --tier-legendary:     #9b59b6;
+  --tier-legendary-bg:  rgba(155,89,182,0.15);
+  --tier-legendary-border: rgba(155,89,182,0.5);
+}
+/* ── Badges Section Header ── */
+.badges-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.badges-section-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.badges-earned-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+}
+
+/* ── Badge Grid ── */
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+@media(max-width: 400px) {
+  .badges-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Individual Badge Card ── */
+.badge-card {
+  position: relative;
+  border-radius: var(--radius-lg);
+  padding: 14px 10px 12px;
+  text-align: center;
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  transition: all var(--transition-base);
+  cursor: default;
+  overflow: hidden;
+}
+
+.badge-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--border);
+  transition: background var(--transition-base);
+}
+
+/* Tier stripes */
+.badge-card.tier-bronze::before  { background: var(--tier-bronze); }
+.badge-card.tier-silver::before  { background: var(--tier-silver); }
+.badge-card.tier-gold::before    { background: var(--tier-gold); }
+.badge-card.tier-legendary::before { background: linear-gradient(90deg, #9b59b6, #e91e63, #ff9800); }
+
+/* Unlocked states */
+.badge-card.tier-bronze.badge-unlocked  {
+  background: var(--tier-bronze-bg);
+  border-color: var(--tier-bronze-border);
+  box-shadow: 0 4px 16px rgba(205,127,50,0.15);
+}
+.badge-card.tier-silver.badge-unlocked  {
+  background: var(--tier-silver-bg);
+  border-color: var(--tier-silver-border);
+  box-shadow: 0 4px 16px rgba(168,169,173,0.15);
+}
+.badge-card.tier-gold.badge-unlocked    {
+  background: var(--tier-gold-bg);
+  border-color: var(--tier-gold-border);
+  box-shadow: 0 4px 16px rgba(255,215,0,0.2);
+}
+.badge-card.tier-legendary.badge-unlocked {
+  background: var(--tier-legendary-bg);
+  border-color: var(--tier-legendary-border);
+  box-shadow: 0 4px 20px rgba(155,89,182,0.25);
+  animation: legendaryPulse 3s ease-in-out infinite;
+}
+
+@keyframes legendaryPulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(155,89,182,0.25); }
+  50%       { box-shadow: 0 6px 28px rgba(155,89,182,0.45); }
+}
+
+.badge-card.badge-locked {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+
+.badge-card.badge-unlocked:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+/* ── Badge Icon ── */
+.badge-icon-wrap {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 10px;
+}
+
+.badge-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: var(--bg-subtle);
+  border: 2px solid var(--border);
+  transition: all var(--transition-base);
+}
+
+.badge-card.tier-bronze.badge-unlocked .badge-icon {
+  background: var(--tier-bronze-bg);
+  border-color: var(--tier-bronze);
+}
+.badge-card.tier-silver.badge-unlocked .badge-icon {
+  background: var(--tier-silver-bg);
+  border-color: var(--tier-silver);
+}
+.badge-card.tier-gold.badge-unlocked .badge-icon {
+  background: var(--tier-gold-bg);
+  border-color: var(--tier-gold);
+}
+.badge-card.tier-legendary.badge-unlocked .badge-icon {
+  background: var(--tier-legendary-bg);
+  border-color: var(--tier-legendary);
+}
+
+/* Tier crown indicator */
+.badge-tier-crown {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ── Badge Text ── */
+.badge-name {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+  line-height: 1.3;
+}
+
+.badge-req {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.badge-tier-label {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.badge-card.tier-bronze .badge-tier-label  { background: var(--tier-bronze-bg);  color: var(--tier-bronze); }
+.badge-card.tier-silver .badge-tier-label  { background: var(--tier-silver-bg);  color: var(--tier-silver); }
+.badge-card.tier-gold   .badge-tier-label  { background: var(--tier-gold-bg);    color: var(--tier-gold); }
+.badge-card.tier-legendary .badge-tier-label {
+  background: var(--tier-legendary-bg);
+  color: var(--tier-legendary);
+}
+
+/* Locked overlay icon */
+.badge-locked-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 50%;
+}
+
+/* ── Featured Badge (top earned badge shown on profile header) ── */
+.profile-featured-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 8px;
+  background: var(--tier-gold-bg);
+  border: 1px solid var(--tier-gold-border);
+  color: var(--tier-gold);
+}
+
+/* ── Progress toward next badge ── */
+.badge-progress-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: var(--radius-full);
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.badge-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.6s ease;
+}
+
+.tier-bronze .badge-progress-fill  { background: var(--tier-bronze); }
+.tier-silver .badge-progress-fill  { background: var(--tier-silver); }
+.tier-gold   .badge-progress-fill  { background: var(--tier-gold); }
+.tier-legendary .badge-progress-fill { background: var(--tier-legendary); }
+
+/* ── Stats Summary Bar (above badges) ── */
+.badges-stats-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.badges-stat-chip {
+  flex: 1;
+  min-width: 70px;
+  text-align: center;
+  padding: 10px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+
+.badges-stat-chip-value {
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+
+.badges-stat-chip-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.chip-bronze  .badges-stat-chip-value { color: var(--tier-bronze); }
+.chip-silver  .badges-stat-chip-value { color: var(--tier-silver); }
+.chip-gold    .badges-stat-chip-value { color: var(--tier-gold); }
+.chip-legendary .badges-stat-chip-value { color: var(--tier-legendary); }
