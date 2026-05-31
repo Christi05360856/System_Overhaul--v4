@@ -102,7 +102,6 @@
       <p class="card-footer">ScriptureQuest v4 • Bible Quiz Platform</p>
     </div>
   </div>
-
   <!-- ══ SCREEN: QUIZ ══ -->
   <div id="screen-quiz" class="screen hidden">
     <div class="quiz-wrapper">
@@ -198,7 +197,6 @@
       <p id="result-attempts-msg" style="text-align:center;margin-top:12px;font-size:13px;color:var(--text-muted);font-weight:600"></p>
     </div>
   </div>
-
   <!-- ══ SCREEN: LEADERBOARD ══ -->
   <div id="screen-leaderboard" class="screen hidden">
     <div class="card" style="max-width:720px;margin:0 auto">
@@ -284,8 +282,7 @@
       </div>
     </div>
   </div>
-
-  <!-- ══ SCREEN: PROFILE ══ -->
+    <!-- ══ SCREEN: PROFILE ══ -->
   <div id="screen-profile" class="screen hidden">
     <div class="card" style="max-width:720px;margin:0 auto">
       <div class="profile-header">
@@ -295,6 +292,7 @@
           <p id="profile-email" style="font-size:13px;color:var(--text-muted)">—</p>
           <p id="profile-joined" style="font-size:12px;color:var(--text-muted)">—</p>
           <span class="profile-role-chip" id="profile-role">User</span>
+          <span class="profile-featured-badge hidden" id="profile-featured-badge"></span>
         </div>
       </div>
 
@@ -367,13 +365,41 @@
 
       <!-- TAB: Achievements -->
       <div id="profile-tab-achievements" class="hidden">
-        <p style="font-size:13px;color:var(--text-muted);font-weight:600;margin-bottom:16px;text-align:center">
-          Complete quizzes and milestones to unlock achievements
+
+        <!-- Section header -->
+        <div class="badges-section-header">
+          <div class="badges-section-title">🏅 Your Badge Collection</div>
+          <span class="badges-earned-count" id="badges-earned-count">0 / 16 earned</span>
+        </div>
+
+        <!-- Tier summary chips -->
+        <div class="badges-stats-bar" id="badges-stats-bar">
+          <div class="badges-stat-chip chip-bronze">
+            <div class="badges-stat-chip-value">0</div>
+            <div class="badges-stat-chip-label">🥉 Bronze</div>
+          </div>
+          <div class="badges-stat-chip chip-silver">
+            <div class="badges-stat-chip-value">0</div>
+            <div class="badges-stat-chip-label">🥈 Silver</div>
+          </div>
+          <div class="badges-stat-chip chip-gold">
+            <div class="badges-stat-chip-value">0</div>
+            <div class="badges-stat-chip-label">🥇 Gold</div>
+          </div>
+          <div class="badges-stat-chip chip-legendary">
+            <div class="badges-stat-chip-value">0</div>
+            <div class="badges-stat-chip-label">✨ Legend</div>
+          </div>
+        </div>
+
+        <p style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:14px;text-align:center">
+          Progress bars show how close you are to locked badges
         </p>
-        <div class="achievements-grid" id="achievements-grid">
-          <!-- Rendered by app.js renderAchievements() -->
+
+        <!-- Badge grid — rendered by renderAchievements() -->
+        <div class="badges-grid" id="achievements-grid">
           <div class="empty-state" style="grid-column:1/-1">
-            <p>Loading achievements…</p>
+            <p>Loading badges…</p>
           </div>
         </div>
       </div>
@@ -404,9 +430,8 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
-      </div>
-
-      <!-- Sound & Notifications -->
+  </div>
+     <!-- Sound & Notifications -->
       <div class="settings-group">
         <div class="settings-group-label">Sound & Notifications</div>
         <div class="settings-row">
@@ -504,8 +529,7 @@
       <button onclick="SQ.closeAuthModal()" class="btn-ghost btn-sm" style="margin-top:8px;color:var(--text-muted);font-size:13px">Cancel</button>
     </div>
   </div>
-
-  <!-- ══ CONFIRM MODAL ══ -->
+    <!-- ══ CONFIRM MODAL ══ -->
   <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal-content">
       <div class="modal-icon" id="confirm-icon">⚠️</div>
@@ -534,5 +558,4 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script type="module" src="/src/app.js"></script>
 </body>
-      </html>
-   
+</html>
