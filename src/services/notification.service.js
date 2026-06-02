@@ -18,7 +18,7 @@ import { COLLECTIONS }             from '../utils/constants.js';
 
 // FCM public VAPID key — replace with your actual key from Firebase Console
 // Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
-const VAPID_KEY = BK0pgQRV8JMxn0g8bDVJmz8B72NeOpkoYHop0FO2mP9eAI62kxr1LGR5V8XjYlZx5K0BscifgM4ABSEpao1K5Mg;
+const VAPID_KEY = 'YOUR_VAPID_KEY_HERE';
 
 let _messaging       = null;
 let _unsubInbox      = null;
@@ -64,9 +64,9 @@ export async function requestPushPermission() {
     const registration = await navigator.serviceWorker.ready;
 
     const token = await getToken(messaging, {
-  vapidKey: VAPID_KEY,
-  serviceWorkerRegistration: registration
-});
+      vapidKey:            VAPID_KEY,
+      serviceWorkerRegistration: registration
+    });
 
     if (token) {
       await savePushToken(user.uid, token);
@@ -306,6 +306,93 @@ export function isPushSupported() {
 export function getPermissionStatus() {
   if (!isPushSupported()) return 'unsupported';
   return Notification.permission; // 'default' | 'granted' | 'denied'
+}
+
+// ============================================
+// OVERTAKE NOTIFICATION (throttled)
+// Only fires when:
+// - You drop OUT of top 10, OR
+// - Someone overtakes you in top 3
+// - Max once per hour per user
+// ============================================
+
+const OVERTAKE_THROTTLE_KEY = 'sq_overtake_notif_ts';
+const OVERTAKE_THROTTLE_MS  = 60 * 60 * 1000; // 1 hour
+
+/**
+ * Call this after leaderboard updates.
+ * Compares old rank vs new rank and notifies if threshold crossed.
+ */
+export function checkOvertakeNotification(oldRank, newRank, overtakerName) {
+  if (!oldRank || !newRank) return;
+
+  // Only notify on meaningful drops
+  const wasTop3   = oldRank <= 3;
+  const nowTop3   = newRank <= 3;
+  const wasTop10  = oldRank <= 10;
+  const nowTop10  = newRank <= 10;
+
+  const shouldNotify =
+    (wasTop3  && !nowTop3)  ||   // Dropped out of top 3
+    (wasTop10 && !nowTop10) ||   // Dropped out of top 10
+    (wasTop3  && nowTop3 && newRank > oldRank); // Position change within top 3
+
+  if (!shouldNotify) return;
+
+  // Throttle — max 1 per hour
+  const lastSent = parseInt(localStorage.getItem(OVERTAKE_THROTTLE_KEY) || '0');
+  if (Date.now() - lastSent < OVERTAKE_THROTTLE_MS) return;
+
+  localStorage.setItem(OVERTAKE_THROTTLE_KEY, String(Date.now()));
+
+  // Build notification message
+  let title, body;
+  if (wasTop3 && !nowTop3) {
+    title = '📉 You dropped out of Top 3!';
+    body  = `${overtakerName || 'Someone'} overtook you. Fight back — take your quiz now!`;
+  } else if (wasTop10 && !nowTop10) {
+    title = '⚠️ You left the Top 10!';
+    body  = `${overtakerName || 'Someone'} passed you on the leaderboard. Get back in!`;
+  } else {
+    title = '🔥 You were overtaken in Top 3!';
+    body  = `${overtakerName || 'Someone'} just passed you. Quiz now to reclaim your spot!`;
+  }
+
+  // Show in-app toast immediately
+  showToast(`${title} ${body}`, 'warning', 6000);
+
+  // Also send push notification if permission granted
+  if (getPermissionStatus() === 'granted' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(reg => {
+      reg.showNotification(title, {
+        body,
+        icon:  '/icons/icon-192.png',
+        badge: '/icons/badge-72.png',
+        tag:   'sq-overtake',
+        vibrate: [200, 100, 200],
+        data:  { url: '/' },
+        actions: [
+          { action: 'take-quiz', title: '📝 Take Quiz Now' },
+          { action: 'dismiss',   title: 'Later' }
+        ]
+      });
+    }).catch(() => {});
+  }
+}
+
+/**
+ * Track user's previous rank to detect changes.
+ * Call on every leaderboard load.
+ */
+const RANK_CACHE_KEY = 'sq_my_last_rank';
+
+export function updateRankCache(currentRank) {
+  if (currentRank) localStorage.setItem(RANK_CACHE_KEY, String(currentRank));
+}
+
+export function getLastKnownRank() {
+  const r = localStorage.getItem(RANK_CACHE_KEY);
+  return r ? parseInt(r) : null;
 }
 
 export default {
