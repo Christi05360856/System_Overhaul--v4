@@ -10,6 +10,9 @@ import {
   query, limit
 } from 'firebase/firestore';
 import { db, auth }        from '../firebase/config.js';
+import { checkOvertakeNotification,
+         updateRankCache,
+         getLastKnownRank }    from './notification.service.js';
 import {
   setLeaderboardCache,
   getLeaderboardCache,
@@ -95,6 +98,21 @@ export function subscribeLeaderboard(onUpdate) {
     snap.forEach(d => entries.push({ userId: d.id, ...d.data() }));
     entries.sort((a, b) => b.points - a.points);
     setLeaderboardCache(entries, weekId);
+
+    // Overtake notification check
+    try {
+      const currentUserId = auth.currentUser?.uid;
+      if (currentUserId) {
+        const newRank    = entries.findIndex(e => e.userId === currentUserId) + 1;
+        const oldRank    = getLastKnownRank();
+        if (newRank > 0 && oldRank && newRank > oldRank) {
+          const overtaker = entries[newRank - 2]; // person now ahead
+          checkOvertakeNotification(oldRank, newRank, overtaker?.displayName);
+        }
+        if (newRank > 0) updateRankCache(newRank);
+      }
+    } catch {}
+
     onUpdate(entries);
   }, err => {
     console.error('[Leaderboard] Realtime error:', err);
@@ -144,14 +162,6 @@ export async function renderLeaderboardRows(entries, containerEl, currentUserId 
       ? `<span style="font-size:12px;color:var(--accent-warm);font-weight:700">🔥${entry.streak}</span>`
       : '';
 
-    // FIX: Extracted nested template literals into plain variables to avoid
-    // Vite/Rollup parse errors caused by backticks nested inside backticks.
-    const pointsFormatted = (entry.points || 0).toLocaleString();
-    const safeName        = (entry.displayName || 'Anonymous').replace(/'/g, '');
-    const challengeBtn    = !isMe
-      ? '<button class="lb-challenge-btn" onclick="window.SQ&&SQ.challengeUser&&SQ.challengeUser(\'' + entry.userId + '\',\'' + safeName + '\')" >⚔️</button>'
-      : '';
-
     return `
       <div class="lb-row ${isMe ? 'lb-row--me' : ''}" data-rank="${rank}">
         <div class="lb-rank">${medal}</div>
@@ -160,8 +170,8 @@ export async function renderLeaderboardRows(entries, containerEl, currentUserId 
           ${prizeHTML}
           ${streakHTML}
         </div>
-        <div class="lb-points">${pointsFormatted} <span class="lb-pts-label">pts</span></div>
-        ${challengeBtn}
+        <div class="lb-points">\${(entry.points || 0).toLocaleString()} <span class="lb-pts-label">pts</span></div>
+        \${!isMe ? `<button class="lb-challenge-btn" onclick="window.SQ&&SQ.challengeUser&&SQ.challengeUser('\${entry.userId}','\${(entry.displayName||'Anonymous').replace(/'/g,'')}')" >⚔️</button>` : ''}
       </div>`;
   });
   const rows = await Promise.all(rowPromises);
