@@ -9,39 +9,46 @@
 import { initAuthListener, login, register,
          logout, updateProfile_,
          resetPassword, getAuthErrorMessage } from './services/auth.service.js';
+
 import { initTheme, setTheme, toggleTheme }   from './services/theme.service.js';
 import { checkAndShowAnnouncements }           from './services/notification.service.js';
+
 import { checkDailyLimit, loadQuizStateFromStorage,
          clearQuizStorage, createQuizSession,
          saveQuizStateToStorage, hasResumableQuiz } from './services/quiz.service.js';
+
 import { createLocalQuizSession,
          submitLocalQuizSession }              from './services/localquiz.service.js';
+
 import { fetchLeaderboard, subscribeLeaderboard,
          unsubscribeLeaderboard, renderLeaderboardRows,
          renderUserRank }                      from './services/leaderboard.service.js';
+
 import { renderRewardTiers, renderRewardProgress,
          claimMilestoneReward, getSentMilestones } from './services/rewards.service.js';
+
 import { setState, getState, getCurrentUser,
          getUserProfile, getUserStats, subscribe } from './state/store.js';
+
 import { showToast }                           from './utils/toast.js';
+
 import { getCurrentWeekId, getDisplayWeek,
          getTimeUntilNextWeek, formatCountdown } from './utils/week.js';
+
 import { LAST_SEEN_WEEK, SCORE_PASS_THRESHOLD } from './utils/constants.js';
+
 import { AVATARS, mountAvatar, renderAvatarSVG } from './components/avatar.js';
 
-// ✅ FIXED: Single consolidated import from match.service.js
+// ✅ SINGLE CLEAN IMPORT FROM MATCH SERVICE
 import {
   createChallenge,
   getChallengeByCode,
-  getMatchByCode,
   acceptChallenge,
   listenToMatch,
-  getMatchResult,
   sendRematch,
   generateWhatsAppLink,
   getChallengeCodeFromURL,
-  clearChallengeFromURL,
-  getUserMatches
+  clearChallengeFromURL
 } from './services/match.service.js';
 
 import { saveAvatar, getAvatarId, getAvatarLabel } from './services/avatar.service.js';
