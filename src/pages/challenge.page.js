@@ -110,11 +110,9 @@ async function handleCreateChallenge() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…'; }
 
   try {
-    // We need questions — import quiz service for local pool or fallback
+    // Questions are passed in by app.js via callbacks, or fetched from Firestore directly
     let questions = [];
     try {
-      // Try to get questions from Firestore via localQuiz service
-      const { isCloudFunctionsAvailable } = await import('../services/localQuiz.service.js');
       const { collection, getDocs, query, where } = await import('firebase/firestore');
       const { db } = await import('../firebase/config.js');
       const snap = await getDocs(
