@@ -120,7 +120,7 @@ export function unsubscribeLeaderboard() {
  * Render leaderboard rows into a container element.
  * Fully theme-aware — uses CSS variables, no hardcoded colors.
  */
-export function renderLeaderboardRows(entries, containerEl, currentUserId = null) {
+export async function renderLeaderboardRows(entries, containerEl, currentUserId = null) {
   if (!containerEl) return;
 
   if (!entries || entries.length === 0) {
@@ -133,7 +133,7 @@ export function renderLeaderboardRows(entries, containerEl, currentUserId = null
     return;
   }
 
-  const rows = entries.slice(0, LEADERBOARD_MAX_DISPLAY).map((entry, idx) => {
+  const rowPromises = entries.slice(0, LEADERBOARD_MAX_DISPLAY).map(async (entry, idx) => {
     const rank         = idx + 1;
     const isMe         = currentUserId && entry.userId === currentUserId;
     const medal        = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
@@ -152,11 +152,13 @@ export function renderLeaderboardRows(entries, containerEl, currentUserId = null
           ${prizeHTML}
           ${streakHTML}
         </div>
-        <div class="lb-points">${(entry.points || 0).toLocaleString()} <span class="lb-pts-label">pts</span></div>
+        <div class="lb-points">\${(entry.points || 0).toLocaleString()} <span class="lb-pts-label">pts</span></div>
+        \${!isMe ? `<button class="lb-challenge-btn" onclick="window.SQ&&SQ.challengeUser&&SQ.challengeUser('\${entry.userId}','\${(entry.displayName||'Anonymous').replace(/'/g,'')}')" >⚔️</button>` : ''}
       </div>`;
-  }).join('');
+  });
+  const rows = await Promise.all(rowPromises);
 
-  containerEl.innerHTML = rows;
+  containerEl.innerHTML = rows.join('');
 
   // Animate rows in
   containerEl.querySelectorAll('.lb-row').forEach((row, i) => {
