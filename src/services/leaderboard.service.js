@@ -10,9 +10,6 @@ import {
   query, limit
 } from 'firebase/firestore';
 import { db, auth }        from '../firebase/config.js';
-import { checkOvertakeNotification,
-         updateRankCache,
-         getLastKnownRank }    from './notification.service.js';
 import {
   setLeaderboardCache,
   getLeaderboardCache,
@@ -26,6 +23,9 @@ import {
   COLLECTIONS,
   LEADERBOARD_MAX_DISPLAY
 } from '../utils/constants.js';
+import { checkOvertakeNotification,
+         updateRankCache,
+         getLastKnownRank }    from './notification.service.js';
 
 let _unsubscribeLeaderboard = null;
 
@@ -36,30 +36,24 @@ let _unsubscribeLeaderboard = null;
 export async function fetchLeaderboard(forceRefresh = false) {
   const weekId = getCurrentWeekId();
 
-  // Return cache if still valid and same week
   const cache = getLeaderboardCache();
   if (!forceRefresh && isLeaderboardCacheValid() && cache.weekId === weekId) {
     return cache.entries;
   }
 
   try {
-    // New architecture: leaderboardWeekly/{weekId}/entries/{uid} subcollection
     const entriesRef = collection(db, COLLECTIONS.LEADERBOARD, weekId, 'entries');
     const q          = query(entriesRef, orderBy('points', 'desc'), limit(LEADERBOARD_MAX_DISPLAY + 5));
     const snap       = await getDocs(q);
 
     const entries = [];
     snap.forEach(d => entries.push({ userId: d.id, ...d.data() }));
-
-    // Sort client-side for extra safety
     entries.sort((a, b) => b.points - a.points);
 
     setLeaderboardCache(entries, weekId);
     return entries;
   } catch (err) {
     console.error('[Leaderboard] Fetch error:', err);
-
-    // Fallback: try old flat leaderboard structure for backward compat
     try {
       return await _fetchLegacyLeaderboard(weekId);
     } catch {
@@ -68,7 +62,6 @@ export async function fetchLeaderboard(forceRefresh = false) {
   }
 }
 
-// ── Backward compat: old leaderboard/{weekId}.entries array ──
 async function _fetchLegacyLeaderboard(weekId) {
   const snap = await getDoc(doc(db, 'leaderboard', weekId));
   if (!snap.exists()) return [];
@@ -83,7 +76,6 @@ async function _fetchLegacyLeaderboard(weekId) {
 // ============================================
 
 export function subscribeLeaderboard(onUpdate) {
-  // Unsubscribe previous listener
   if (_unsubscribeLeaderboard) {
     _unsubscribeLeaderboard();
     _unsubscribeLeaderboard = null;
@@ -99,14 +91,14 @@ export function subscribeLeaderboard(onUpdate) {
     entries.sort((a, b) => b.points - a.points);
     setLeaderboardCache(entries, weekId);
 
-    // Overtake notification check
+    // ── Sprint 3: Overtake notification check ──
     try {
       const currentUserId = auth.currentUser?.uid;
       if (currentUserId) {
-        const newRank    = entries.findIndex(e => e.userId === currentUserId) + 1;
-        const oldRank    = getLastKnownRank();
+        const newRank  = entries.findIndex(e => e.userId === currentUserId) + 1;
+        const oldRank  = getLastKnownRank();
         if (newRank > 0 && oldRank && newRank > oldRank) {
-          const overtaker = entries[newRank - 2]; // person now ahead
+          const overtaker = entries[newRank - 2];
           checkOvertakeNotification(oldRank, newRank, overtaker?.displayName);
         }
         if (newRank > 0) updateRankCache(newRank);
@@ -116,7 +108,6 @@ export function subscribeLeaderboard(onUpdate) {
     onUpdate(entries);
   }, err => {
     console.error('[Leaderboard] Realtime error:', err);
-    // Fall back to cached data on error
     onUpdate(getLeaderboardCache().entries || []);
   });
 
@@ -134,10 +125,6 @@ export function unsubscribeLeaderboard() {
 // RENDER HELPERS
 // ============================================
 
-/**
- * Render leaderboard rows into a container element.
- * Fully theme-aware — uses CSS variables, no hardcoded colors.
- */
 export async function renderLeaderboardRows(entries, containerEl, currentUserId = null) {
   if (!containerEl) return;
 
@@ -152,14 +139,21 @@ export async function renderLeaderboardRows(entries, containerEl, currentUserId 
   }
 
   const rowPromises = entries.slice(0, LEADERBOARD_MAX_DISPLAY).map(async (entry, idx) => {
-    const rank         = idx + 1;
-    const isMe         = currentUserId && entry.userId === currentUserId;
-    const medal        = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
-    const prizeHTML    = rank <= 3
+    const rank      = idx + 1;
+    const isMe      = currentUserId && entry.userId === currentUserId;
+    const medal     = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+    const prizeHTML = rank <= 3
       ? `<span class="badge badge-reward" style="font-size:10px;padding:2px 8px">🏆 Prize</span>`
       : '';
-    const streakHTML   = entry.streak
+    const streakHTML = entry.streak
       ? `<span style="font-size:12px;color:var(--accent-warm);font-weight:700">🔥${entry.streak}</span>`
+      : '';
+
+    // Vite-safe: no nested backticks in template literals
+    const pointsFormatted = (entry.points || 0).toLocaleString();
+    const safeName        = (entry.displayName || 'Anonymous').replace(/'/g, '');
+    const challengeBtn    = !isMe
+      ? '<button class="lb-challenge-btn" onclick="window.SQ&&SQ.challengeUser&&SQ.challengeUser(\'' + entry.userId + '\',\'' + safeName + '\')">⚔️</button>'
       : '';
 
     return `
@@ -170,25 +164,20 @@ export async function renderLeaderboardRows(entries, containerEl, currentUserId 
           ${prizeHTML}
           ${streakHTML}
         </div>
-        <div class="lb-points">\${(entry.points || 0).toLocaleString()} <span class="lb-pts-label">pts</span></div>
-        \${!isMe ? `<button class="lb-challenge-btn" onclick="window.SQ&&SQ.challengeUser&&SQ.challengeUser('\${entry.userId}','\${(entry.displayName||'Anonymous').replace(/'/g,'')}')" >⚔️</button>` : ''}
+        <div class="lb-points">${pointsFormatted} <span class="lb-pts-label">pts</span></div>
+        ${challengeBtn}
       </div>`;
   });
-  const rows = await Promise.all(rowPromises);
 
+  const rows = await Promise.all(rowPromises);
   containerEl.innerHTML = rows.join('');
 
-  // Animate rows in
   containerEl.querySelectorAll('.lb-row').forEach((row, i) => {
     row.style.animationDelay = `${i * 40}ms`;
     row.classList.add('lb-row--animate');
   });
 }
 
-/**
- * Render the current user's rank below the leaderboard
- * if they're outside the top LEADERBOARD_MAX_DISPLAY.
- */
 export function renderUserRank(entries, rankContainerEl, currentUserId) {
   if (!rankContainerEl || !currentUserId) return;
 
