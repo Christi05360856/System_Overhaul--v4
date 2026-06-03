@@ -634,18 +634,18 @@
         </button>
       </div>
 
-      <div id="challenge-share-actions" class="hidden" style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
-        <button class="btn-primary btn-full" id="whatsapp-share-btn" style="background:linear-gradient(135deg,#25d366,#128c7e)">
-          💬 Share on WhatsApp
-        </button>
-        <button class="btn-secondary btn-full" onclick="SQ.closeChallengeModal()">Done</button>
+      <div id="challenge-share-actions">
+  <!-- existing WhatsApp button -->
+  <button id="whatsapp-share-btn" class="btn btn-whatsapp">
+    <i class="fab fa-whatsapp"></i> Share on WhatsApp
+  </button>
+  
+  <!-- ADD THIS CANCEL BUTTON -->
+  <button id="challenge-cancel-btn" class="btn btn-secondary">
+    <i class="fas fa-times"></i> Cancel Challenge
+  </button>
       </div>
-
-      <button onclick="SQ.closeChallengeModal()" class="btn-ghost btn-sm" style="margin-top:10px;color:var(--text-muted);font-size:13px;width:100%">
-        Cancel
-      </button>
-    </div>
-  </div>
+      
 
   <!-- ══ MODAL: ACCEPT CHALLENGE ══ -->
   <div id="challenge-accept-modal" class="modal hidden" role="dialog">
