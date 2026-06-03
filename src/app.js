@@ -89,17 +89,21 @@ function showScreen(name) {
     const el = document.getElementById(`screen-${id}`);
     if (el) el.classList.toggle('hidden', id !== name);
   });
-
+ 
   const nav   = document.getElementById('bottom-nav');
   const noNav = ['loading','quiz','result','battle','battle-result','challenge'];
   if (nav) nav.classList.toggle('hidden', noNav.includes(name));
-
+ 
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.screen === name);
   });
-
+ 
   setState('nav', { current: name });
 
+         // FAB: only on landing and leaderboard
+  const FAB_SCREENS = ['landing', 'leaderboard'];
+  setBattleFabVisible(FAB_SCREENS.includes(name));
+ 
   if (name === 'leaderboard') initLeaderboardScreen();
   if (name === 'rewards')     initRewardsScreen();
   if (name === 'profile')     initProfileScreen();
@@ -272,6 +276,46 @@ function checkNewWeek() {
     }
   }
   localStorage.setItem(LAST_SEEN_WEEK, currentWeekId);
+}
+
+async function _checkPendingBattleResult(user) {
+  try {
+    const { PENDING_BATTLE_KEY } = await import('./utils/constants.js');
+    const pendingMatchId = localStorage.getItem(PENDING_BATTLE_KEY);
+    if (!pendingMatchId) return;
+ 
+    const match = await getMatchResult(pendingMatchId);
+    if (!match) { localStorage.removeItem(PENDING_BATTLE_KEY); return; }
+ 
+    if (match.status === 'completed') {
+      // Show result immediately
+      localStorage.removeItem(PENDING_BATTLE_KEY);
+      showToast('⚔️ Your battle result is ready!', 'success', 3000);
+      setTimeout(() => {
+        showScreen('battle-result');
+        renderBattleResult(match);
+      }, 1000);
+    } else if (match.status === 'active') {
+      // Still waiting — re-subscribe silently
+      const unsub = listenToMatch(pendingMatchId, completedMatch => {
+        if (completedMatch.status === 'completed') {
+          unsub();
+          localStorage.removeItem(PENDING_BATTLE_KEY);
+          showToast('⚔️ Battle result is in!', 'success', 3000);
+          setTimeout(() => {
+            showScreen('battle-result');
+            renderBattleResult(completedMatch);
+          }, 500);
+        }
+      });
+      showToast('Still waiting for opponent to finish your battle…', 'info', 4000);
+    } else {
+      // Expired / unknown
+      localStorage.removeItem(PENDING_BATTLE_KEY);
+    }
+  } catch(e) {
+    console.warn('[App] Pending battle check failed:', e.message);
+  }
 }
 
 // ============================================
@@ -1351,61 +1395,54 @@ function renderBattleResult(match) {
       </div>`).join('');
   }
 
-  el('battle-rematch-btn')?.addEventListener('click', async () => {
+ el('battle-rematch-btn')?.addEventListener('click', async () => {
   const btn = el('battle-rematch-btn');
   btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-  
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
+ 
   try {
-    // Create a fresh challenge for the rematch
-    if (!_localQuestionsCache) {
-      _localQuestionsCache = await getLocalQuestions();
-    }
-    
-    const result = await createChallenge(_localQuestionsCache);
+    if (!_localQuestionsCache) _localQuestionsCache = await getLocalQuestions();
+ 
+    // sendRematch now creates a brand-new match and returns {matchId, code, questions}
+    const result = await sendRematch(match.matchId, _localQuestionsCache);
     _currentChallenge = result;
-    
-    // Show the challenge modal with the new code
-    const codeDisplay = document.getElementById('challenge-code-display');
-    const codeBox = document.getElementById('challenge-code-box');
+ 
+    const codeDisplay   = document.getElementById('challenge-code-display');
+    const codeBox       = document.getElementById('challenge-code-box');
     const createActions = document.getElementById('challenge-create-actions');
-    const shareActions = document.getElementById('challenge-share-actions');
-    
+    const shareActions  = document.getElementById('challenge-share-actions');
+ 
     if (codeDisplay) codeDisplay.textContent = result.code;
-    if (codeBox) codeBox.classList.remove('hidden');
+    if (codeBox)     codeBox.classList.remove('hidden');
     if (createActions) createActions.classList.add('hidden');
-    if (shareActions) shareActions.classList.remove('hidden');
-    
-    // Wire WhatsApp share
-    const user = getCurrentUser();
+    if (shareActions)  shareActions.classList.remove('hidden');
+ 
+    const user   = getCurrentUser();
     const appUrl = window.location.origin;
     const waLink = generateWhatsAppLink(result.code, user?.displayName || 'Someone', appUrl);
-    const waBtn = document.getElementById('whatsapp-share-btn');
+    const waBtn  = document.getElementById('whatsapp-share-btn');
     if (waBtn) waBtn.onclick = () => window.open(waLink, '_blank');
-    
-    // Show the create challenge modal (not the challenge lobby screen)
+ 
     document.getElementById('challenge-create-modal')?.classList.remove('hidden');
-    
-    showToast(`Rematch ready! Code: ${result.code}`, 'success', 4000);
-    
+    showToast(`Rematch ready! New code: ${result.code}`, 'success', 5000);
+ 
     // Listen for opponent accepting
     if (_matchUnsubscribe) _matchUnsubscribe();
-    _matchUnsubscribe = listenToMatch(result.matchId, async match => {
-      if (match.status === 'active' && match.opponentId) {
+    _matchUnsubscribe = listenToMatch(result.matchId, async updatedMatch => {
+      if (updatedMatch.status === 'active' && updatedMatch.opponentId) {
         if (_matchUnsubscribe) { _matchUnsubscribe(); _matchUnsubscribe = null; }
         document.getElementById('challenge-create-modal')?.classList.add('hidden');
-        showToast(`${match.opponentName} accepted! Starting rematch… ⚔️`, 'success', 3000);
-        setTimeout(() => startBattle(result.matchId, match.questions, match), 1200);
+        showToast(`${updatedMatch.opponentName} accepted! Starting rematch… ⚔️`, 'success', 3000);
+        setTimeout(() => startBattle(result.matchId, updatedMatch.questions, updatedMatch), 1200);
       }
     });
-    
-  } catch (err) {
+ 
+  } catch(err) {
     showToast(err.message || 'Failed to create rematch', 'error');
     btn.disabled = false;
     btn.innerHTML = '🔄 Request Rematch';
   }
 });
-}            
 
 // ============================================
 // AVATAR MODAL
