@@ -5,6 +5,8 @@
 
 import { submitBattleAnswers, listenToMatch } from '../services/match.service.js';
 import { getCurrentUser } from '../state/store.js';
+import { BATTLE_DURATION_SECS } from '../utils/constants.js';
+
 
 let _currentQuestion = 0;
 let _answers = {};
@@ -12,11 +14,17 @@ let _questions = [];
 let _matchId = null;
 let _isCreator = false;
 let _timerInterval = null;
-let _timeLeft = 360; // 6 minutes in seconds
+let _timeLeft = BATTLE_DURATION_SECS; // 2:30 (150 seconds)
 let _onComplete = null;
 let _matchUnsub = null;
+let _submitting = false; // prevent double-submit
+
 
 export async function initBattleScreen(matchId, questions, match, callbacks) {
+  // FIX: Always clean up old battle state first
+  if (_timerInterval) { clearInterval(_timerInterval); _timerInterval = null; }
+  if (_matchUnsub) { _matchUnsub(); _matchUnsub = null; }
+  
   _matchId = matchId;
   _questions = questions || match.questions || [];
   _answers = {};
@@ -169,8 +177,13 @@ function prevQuestion() {
 }
 
 async function finishBattle() {
+  if (_submitting) return; // prevent double-submit
+  _submitting = true;
+  
   clearInterval(_timerInterval);
-  if (_matchUnsub) _matchUnsub();
+  _timerInterval = null;
+  if (_matchUnsub) { _matchUnsub(); _matchUnsub = null; }
+  
 
   const user = getCurrentUser();
   const userAnswers = _questions.map((_, i) => _answers[i] !== undefined ? _answers[i] : null);
@@ -187,7 +200,7 @@ async function finishBattle() {
     }
   } catch (err) {
     console.error('[Battle] Submit error:', err);
-    // Still try to show waiting or results
+    _submitting = false; // allow retry on error
     showWaitingScreen();
   }
 }
@@ -212,4 +225,9 @@ function showWaitingScreen() {
       if (_onComplete) _onComplete(match);
     }
   });
+}
+export function destroyBattleScreen() {
+  if (_timerInterval) { clearInterval(_timerInterval); _timerInterval = null; }
+  if (_matchUnsub) { _matchUnsub(); _matchUnsub = null; }
+  _submitting = false;
 }
