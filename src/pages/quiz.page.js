@@ -65,7 +65,7 @@ export async function initQuizScreen(sessionData, callbacks) {
 
   el('quiz-next-btn')?.addEventListener('click', handleNext);
   el('quiz-prev-btn')?.addEventListener('click', handlePrev);
-  el('quiz-submit-btn')?.addEventListener('click', handleSubmit);
+  el('quiz-submit-btn')?.addEventListener('click', () => handleSubmit(false));
   el('quit-quiz-btn')?.addEventListener('click', handleQuit);
   el('quiz-theme-toggle')?.addEventListener('click', () => {
     import('../services/theme.service.js').then(m => m.toggleTheme());
@@ -267,7 +267,7 @@ function startTimer() {
   function tick() {
     if (_timeLeft <= 0) {
       stopTimer();
-      showToast('⏰ Time\'s up! Submitting your answers…', 'warning', 3000);
+      showToast("⏰ Time's up! Submitting your answers…", 'warning', 3000);
       handleSubmit(true);
       return;
     }
@@ -305,14 +305,42 @@ async function handleSubmit(timeExpired = false) {
   try {
     let result;
     if (_callbacks._localSubmit) {
-      result = await _callbacks._localSubmit(_sessionId, _userAnswers);
+      result = await _callbacks._localSubmit(_sessionId, _userAnswers, _questions);
     } else {
       result = await submitQuizSession(_sessionId, _userAnswers);
     }
     clearQuizStorage();
     _callbacks.onComplete?.(result);
   } catch (err) {
+    // FIX: Always reset _submitting so the user can retry.
+    // FIX: Clear storage if the error indicates the session is dead
+    // (already submitted, permission denied, or session not found).
+    // This prevents the user from being stuck in a broken state.
     _submitting = false;
+
+    const msg = err.message || '';
+    const isDeadSession =
+      msg.includes('already submitted') ||
+      msg.includes('permission-denied') ||
+      msg.includes('Missing or insufficient permissions') ||
+      msg.includes('Failed to create quiz session') ||
+      msg.includes('Session check failed') ||
+      msg.includes('Failed to lock session');
+
+    if (isDeadSession) {
+      clearQuizStorage();
+      showToast(
+        'Your quiz session could not be saved. Please start a new quiz.',
+        'error',
+        5000
+      );
+      // Give the user a moment to read the toast, then navigate away
+      setTimeout(() => {
+        _callbacks.onAbandon?.();
+      }, 2500);
+      return;
+    }
+
     showToast(err.message || 'Submission failed. Please try again.', 'error');
     if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit'; }
     startTimer();
