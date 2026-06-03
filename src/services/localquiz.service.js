@@ -1,9 +1,8 @@
 // ============================================
 // SCRIPTUREQUEST v4 — Local Quiz Fallback
-// Used when Cloud Functions aren't deployed yet.
-// Fix: Firestore questions first, local fallback.
-// Fix: Session existence check before submit write.
-// Fix: Proper error handling to prevent hang on 2nd quiz.
+// Fix 1: Merges Firestore + local questions.js
+//         to always reach TOTAL_QUESTIONS (15)
+// Fix 2: Session existence check before submit
 // ============================================
 
 import { db, auth }            from '../firebase/config.js';
@@ -11,47 +10,56 @@ import { doc, getDoc, setDoc,
          collection, query,
          where, getDocs,
          Timestamp, serverTimestamp } from 'firebase/firestore';
-import { setState }            from '../state/store.js';
-import { getCurrentWeekId,
-         getTodayString }      from '../utils/week.js';
+import { getCurrentWeekId }    from '../utils/week.js';
 import { QUIZ_STATE_KEY,
          TOTAL_QUESTIONS,
          QUIZ_DURATION_SECS }  from '../utils/constants.js';
 
 const MAX_DAILY = 2;
 
-// ── Check if Firestore questions exist ──
 export async function isCloudFunctionsAvailable() {
   try {
     const snap = await getDocs(
       query(collection(db, 'questions'), where('isActive', '==', true))
     );
     return snap.size > 0;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
-// ── Issue 4 Fix: Always try Firestore first, local array as fallback ──
+// ── Issue 1 Fix: Merge Firestore + local, dedupe by question text ──
 async function getQuestionsPool(fallbackArray) {
+  let firestoreQs = [];
   try {
     const snap = await getDocs(
       query(collection(db, 'questions'), where('isActive', '==', true))
     );
-    if (snap.size > 0) {
-      const qs = [];
-      snap.forEach(d => qs.push({ id: d.id, ...d.data() }));
-      console.log('[LocalQuiz] Using', qs.length, 'Firestore questions');
-      return qs;
-    }
-    console.log('[LocalQuiz] Firestore empty, using local questions.js pool');
+    snap.forEach(d => firestoreQs.push({ id: d.id, ...d.data() }));
+    console.log('[LocalQuiz] Firestore questions:', firestoreQs.length);
   } catch(e) {
-    console.warn('[LocalQuiz] Firestore fetch failed, using local:', e.message);
+    console.warn('[LocalQuiz] Firestore fetch failed:', e.message);
   }
-  return fallbackArray || [];
+
+  const localQs = fallbackArray || [];
+
+  if (firestoreQs.length === 0) {
+    console.log('[LocalQuiz] Using local pool only:', localQs.length);
+    return localQs;
+  }
+
+  if (firestoreQs.length >= TOTAL_QUESTIONS) {
+    console.log('[LocalQuiz] Firestore pool sufficient:', firestoreQs.length);
+    return firestoreQs;
+  }
+
+  // Merge: Firestore first, then fill from local avoiding duplicates
+  const firestoreTexts = new Set(firestoreQs.map(q => q.question.trim().toLowerCase()));
+  const uniqueLocal    = localQs.filter(q => !firestoreTexts.has(q.question.trim().toLowerCase()));
+  const merged         = [...firestoreQs, ...uniqueLocal];
+  console.log('[LocalQuiz] Merged pool:', merged.length,
+    '(', firestoreQs.length, 'Firestore +', uniqueLocal.length, 'local)');
+  return merged;
 }
 
-// ── Create a local quiz session ──
 export async function createLocalQuizSession(questionsArray) {
   const user = auth.currentUser;
   if (!user) throw new Error('You must be logged in.');
@@ -73,11 +81,17 @@ export async function createLocalQuizSession(questionsArray) {
   }
 
   const fullPool  = await getQuestionsPool(questionsArray);
+
+  if (fullPool.length < TOTAL_QUESTIONS) {
+    throw new Error(
+      `Not enough questions available (${fullPool.length} found, need ${TOTAL_QUESTIONS}). ` +
+      `Please ask the admin to add more questions.`
+    );
+  }
+
   const pool      = shuffleArray([...fullPool]);
   const selected  = pool.slice(0, TOTAL_QUESTIONS);
   const expiresAt = Date.now() + QUIZ_DURATION_SECS * 1000;
-
-  // Issue 2 Fix: Use attempt count + timestamp for truly unique session IDs
   const sessionId = `local_${user.uid}_${Date.now()}_${attSnap.size}`;
 
   try {
@@ -97,41 +111,31 @@ export async function createLocalQuizSession(questionsArray) {
       isLocalSession: true
     });
   } catch (e) {
-    console.warn('[LocalQuiz] Could not save session stub:', e.message);
-    // Non-fatal — submission will create it if needed
+    console.warn('[LocalQuiz] Session stub save failed (non-fatal):', e.message);
   }
 
   return {
-    sessionId,
-    questions:      selected,
-    expiresAt,
+    sessionId, questions: selected, expiresAt,
     dailyRemaining: Math.max(0, MAX_DAILY - attSnap.size - 1),
-    resumed:        false,
-    isLocal:        true
+    resumed: false, isLocal: true
   };
 }
 
-// ── Issue 2 Fix: Submit with session existence check ──
 export async function submitLocalQuizSession(sessionId, userAnswers, questions) {
   const user = auth.currentUser;
   if (!user) throw new Error('You must be logged in.');
 
-  // Check if session already completed — prevent double-submit hang
+  // Issue 2 Fix: Check if already submitted before doing anything
   try {
     const sessionSnap = await getDoc(doc(db, 'quizSessions', sessionId));
     if (sessionSnap.exists() && sessionSnap.data().completed === true) {
-      console.warn('[LocalQuiz] Session already completed, skipping duplicate submit:', sessionId);
-      // Return a safe dummy result so the UI doesn't hang
       throw new Error('This quiz session was already submitted. Please start a new quiz.');
     }
   } catch(e) {
-    // Re-throw the "already submitted" error specifically
     if (e.message.includes('already submitted')) throw e;
-    // Otherwise session doesn't exist yet — that's fine, we'll create it below
-    console.warn('[LocalQuiz] Session check error (non-fatal):', e.message);
+    console.warn('[LocalQuiz] Session pre-check (non-fatal):', e.message);
   }
 
-  // Score calculation
   let score = 0;
   for (let i = 0; i < questions.length; i++) {
     if (userAnswers[i] !== undefined && userAnswers[i] === questions[i].correctAnswer) score++;
@@ -140,7 +144,6 @@ export async function submitLocalQuizSession(sessionId, userAnswers, questions) 
   const total       = questions.length;
   const percentage  = Math.round((score / total) * 100);
   const allAnswered = Object.keys(userAnswers).length >= total;
-
   const baseXp          = score * 10;
   const accuracyBonus   = percentage >= 90 ? 90 : percentage >= 70 ? 40 : 0;
   const completionBonus = allAnswered ? 50 : 0;
@@ -153,8 +156,7 @@ export async function submitLocalQuizSession(sessionId, userAnswers, questions) 
   const statsSnap = await getDoc(statsRef);
   const stats     = statsSnap.exists() ? statsSnap.data() : {
     totalXp: 0, level: 1, currentLevelXp: 0,
-    currentStreak: 0, longestStreak: 0,
-    quizzesTaken: 0, bestScore: 0
+    currentStreak: 0, longestStreak: 0, quizzesTaken: 0, bestScore: 0
   };
 
   const newTotalXp = (stats.totalXp || 0) + xpEarned;
@@ -166,31 +168,24 @@ export async function submitLocalQuizSession(sessionId, userAnswers, questions) 
   const lastDate  = dailySnap.exists() ? dailySnap.data().lastQuizDate : null;
   const yesterday = getYesterday();
   let newStreak   = 1;
-  if (lastDate === todayStr)  newStreak = stats.currentStreak || 1;
+  if (lastDate === todayStr)       newStreak = stats.currentStreak || 1;
   else if (lastDate === yesterday) newStreak = (stats.currentStreak || 0) + 1;
   const longestStreak = Math.max(newStreak, stats.longestStreak || 0);
 
-  // Issue 2 Fix: Mark session completed FIRST (optimistic lock) before writing attempt
-  // This prevents a race condition where two rapid submits both see completed=false
+  // Mark session complete first (optimistic lock against double-submit)
   try {
     await setDoc(doc(db, 'quizSessions', sessionId), {
-      completed:   true,
-      validated:   true,
+      completed: true, validated: true,
       submittedAt: serverTimestamp(),
-      answers:     userAnswers,
-      score,
-      percentage,
-      xpEarned
+      answers: userAnswers, score, percentage, xpEarned
     }, { merge: true });
   } catch(e) {
-    // If this fails it means the session doc hit a conflict — treat as double submit
     console.warn('[LocalQuiz] Session lock failed:', e.message);
-    if (e.code === 'permission-denied' || e.code === 'already-exists') {
+    if (e.code === 'permission-denied') {
       throw new Error('Quiz already submitted. Please wait a moment and try again.');
     }
   }
 
-  // Now write all the stats (non-blocking errors are acceptable here)
   try {
     await setDoc(doc(collection(db, 'quizAttempts')), {
       userId: user.uid, sessionId, score, totalQuestions: total,
@@ -199,46 +194,40 @@ export async function submitLocalQuizSession(sessionId, userAnswers, questions) 
     });
 
     await setDoc(statsRef, {
-      totalXp:        newTotalXp,
-      level:          newLevel,
+      totalXp: newTotalXp, level: newLevel,
       currentLevelXp: newTotalXp - xpForLevel(newLevel - 1),
-      currentStreak:  newStreak,
-      longestStreak,
-      quizzesTaken:   (stats.quizzesTaken || 0) + 1,
-      bestScore:      Math.max(stats.bestScore || 0, percentage),
-      updatedAt:      serverTimestamp()
+      currentStreak: newStreak, longestStreak,
+      quizzesTaken: (stats.quizzesTaken || 0) + 1,
+      bestScore: Math.max(stats.bestScore || 0, percentage),
+      updatedAt: serverTimestamp()
     }, { merge: true });
 
     await setDoc(dailyRef, {
       todayQuizCount: (dailySnap.data()?.todayQuizCount || 0) + 1,
-      lastQuizDate:   todayStr,
-      updatedAt:      serverTimestamp()
+      lastQuizDate: todayStr, updatedAt: serverTimestamp()
     }, { merge: true });
 
     const currentLbPoints = await getLeaderboardPoints(user.uid, weekId);
     await setDoc(
       doc(db, 'leaderboardWeekly', weekId, 'entries', user.uid), {
-        userId:      user.uid,
+        userId: user.uid,
         displayName: auth.currentUser.displayName || 'Anonymous',
-        points:      currentLbPoints + xpEarned,
-        level:       newLevel,
-        streak:      newStreak,
-        quizzesTaken:(stats.quizzesTaken || 0) + 1,
-        updatedAt:   serverTimestamp()
+        points: currentLbPoints + xpEarned,
+        level: newLevel, streak: newStreak,
+        quizzesTaken: (stats.quizzesTaken || 0) + 1,
+        updatedAt: serverTimestamp()
       }, { merge: true });
-
   } catch (e) {
-    // Stats write errors are non-fatal — user still gets their result
     console.error('[LocalQuiz] Stats write error (non-fatal):', e.message);
   }
 
   return {
     score, totalQuestions: total, percentage,
-    passed:        percentage >= 50,
-    xpEarned,     totalXp: newTotalXp, leveledUp,
-    oldLevel:      stats.level || 1, newLevel,
-    streak:        newStreak,
-    streakBroken:  newStreak === 1 && (stats.currentStreak || 0) > 1,
+    passed: percentage >= 50, xpEarned,
+    totalXp: newTotalXp, leveledUp,
+    oldLevel: stats.level || 1, newLevel,
+    streak: newStreak,
+    streakBroken: newStreak === 1 && (stats.currentStreak || 0) > 1,
     longestStreak, weeklyPoints: xpEarned,
     achievementUnlocks: [], badgeUnlocks: []
   };
@@ -268,8 +257,7 @@ function xpForLevel(level) {
 }
 
 function getYesterday() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
+  const d = new Date(); d.setDate(d.getDate() - 1);
   return d.toISOString().split('T')[0];
 }
 
@@ -285,4 +273,4 @@ function formatMs(ms) {
   const h = Math.floor(ms / 3600000);
   const m = Math.floor((ms % 3600000) / 60000);
   return `${h}h ${m}m`;
-}
+             }
