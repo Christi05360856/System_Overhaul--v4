@@ -996,27 +996,30 @@ function closeChallengeAcceptModal() {
 async function acceptChallengeByCode() {
   const input = document.getElementById('challenge-code-input');
   const rawCode = input?.value?.trim() || '';
-  const code = rawCode.replace(/:\d+$/, '').toUpperCase();  // ← ADD THIS LINE
+  const code = rawCode.replace(/:\d+$/, '').toUpperCase();
   if (!code) return showToast('Please enter a challenge code', 'error');
-  
+
   const btn = document.getElementById('accept-challenge-btn');
-  btn.disabled    = true;
+  btn.disabled = true;
   btn.textContent = 'Accepting…';
 
   try {
-    if (!_localQuestionsCache) {
-      _localQuestionsCache = await getLocalQuestions();
+    // Step 1: Look up the match by code FIRST
+    const matchData = await getChallengeByCode(code);
+    if (!matchData) {
+      throw new Error('Challenge not found. Check the code and try again.');
     }
 
-    const { matchId, match } = await acceptChallenge(code);
-    
+    // Step 2: Now accept using the actual matchId
+    const { matchId, questions } = await acceptChallenge(matchData.matchId);
 
     closeChallengeAcceptModal();
     showToast(`Challenge accepted! Good luck! ⚔️`, 'success', 3000);
 
+    // Step 3: Start the battle
     const challengePage = await import('./pages/challenge.page.js');
     showScreen('battle');
-    await challengePage.initChallengePage(matchId, match, {
+    await challengePage.initChallengePage(matchId, { ...matchData, questions }, {
       onDone: (result) => {
         if (result.action === 'rematch') {
           openChallengeModal();
@@ -1028,10 +1031,11 @@ async function acceptChallengeByCode() {
     });
   } catch (err) {
     showToast(err.message, 'error');
-    btn.disabled  = false;
+    btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-fist-raised"></i> Accept Challenge!';
   }
 }
+
 
 // ============================================
 // CHALLENGE SCREEN
@@ -1090,25 +1094,49 @@ async function showCreateChallengeUI() {
 async function handleIncomingChallenge(code) {
   document.getElementById('challenge-create-section')?.classList.add('hidden');
   document.getElementById('challenge-accept-section')?.classList.remove('hidden');
+  
   try {
-    const match = await getChallengeByCode(code);
-    if (!match) { showToast('Challenge not found or expired','error'); return; }
-    _currentMatchId   = match.matchId;
+    const match = await getChallengeByCode(code);  // ← look up by code
+    if (!match) { 
+      showToast('Challenge not found or expired', 'error'); 
+      return; 
+    }
+    
+    _currentMatchId = match.matchId;
     _currentMatchData = match;
+    
     const nameEl = document.getElementById('challenge-from-name');
     if (nameEl) nameEl.textContent = `⚔️ ${match.creatorName} challenged you to a Bible battle!`;
+    
     window.history.replaceState({}, document.title, window.location.pathname);
-    document.getElementById('challenge-accept-btn')?.addEventListener('click', async () => {
-      try {
-        const result = await acceptChallenge(match.matchId);
-        startBattle(match.matchId, result.questions, match);
-      } catch(err) { showToast(err.message,'error'); }
-    });
-    document.getElementById('challenge-decline-btn')?.addEventListener('click', () => showScreen('landing'));
+    
+    // Clean up old listeners before adding new ones
+    const acceptBtn = document.getElementById('challenge-accept-btn');
+    const newAcceptBtn = acceptBtn?.cloneNode(true);
+    if (acceptBtn && newAcceptBtn) {
+      acceptBtn.parentNode.replaceChild(newAcceptBtn, acceptBtn);
+      newAcceptBtn.addEventListener('click', async () => {
+        try {
+          const result = await acceptChallenge(match.matchId);  // ← use matchId here
+          startBattle(match.matchId, result.questions, match);
+        } catch(err) { 
+          showToast(err.message, 'error'); 
+        }
+      });
+    }
+    
+    const declineBtn = document.getElementById('challenge-decline-btn');
+    const newDeclineBtn = declineBtn?.cloneNode(true);
+    if (declineBtn && newDeclineBtn) {
+      declineBtn.parentNode.replaceChild(newDeclineBtn, declineBtn);
+      newDeclineBtn.addEventListener('click', () => showScreen('landing'));
+    }
+    
   } catch(err) {
-    showToast('Failed to load challenge','error');
+    showToast('Failed to load challenge', 'error');
   }
 }
+
 
 // [Patch 2] setBattleFabVisible called here
 async function startBattle(matchId, questions, match) {
