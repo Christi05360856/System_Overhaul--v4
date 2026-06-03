@@ -1260,13 +1260,74 @@ async function saveSelectedAvatar() {
 }
 
 // ============================================
+// Issue 2 Fix — handleChallengeUser
+// Creates a match and opens the battle screen
+// when challenging a user from the leaderboard.
+// ============================================
+async function handleChallengeUser(opponentUid, opponentName) {
+  const user = getCurrentUser();
+  if (!user) { openAuthModal(); return; }
+  if (opponentUid === user.uid) {
+    showToast("You can't challenge yourself!", 'error'); return;
+  }
+
+  showToast(`⚔️ Creating battle with ${opponentName}…`, 'info', 2000);
+
+  try {
+    // Get questions — Firestore first, local fallback
+    if (!_localQuestionsCache) _localQuestionsCache = await getLocalQuestions();
+    const { createChallenge: _createChallenge } = await import('./services/match.service.js');
+    const result = await _createChallenge(_localQuestionsCache);
+
+    // Show the challenge share modal so challenger can send the code
+    // AND store opponent info so we can track who they challenged
+    _currentChallenge = { ...result, targetUid: opponentUid, targetName: opponentName };
+
+    // Populate the create modal with the code
+    const codeDisplay  = document.getElementById('challenge-code-display');
+    const codeBox      = document.getElementById('challenge-code-box');
+    const createActions = document.getElementById('challenge-create-actions');
+    const shareActions  = document.getElementById('challenge-share-actions');
+
+    if (codeDisplay) codeDisplay.textContent = result.code;
+    if (codeBox)     codeBox.classList.remove('hidden');
+    if (createActions) createActions.classList.add('hidden');
+    if (shareActions)  shareActions.classList.remove('hidden');
+
+    // Wire WhatsApp button with opponent's name pre-filled
+    const appUrl = window.location.origin;
+    const waLink = generateWhatsAppLink(result.code, user.displayName || 'Someone', appUrl);
+    const waBtn  = document.getElementById('whatsapp-share-btn');
+    if (waBtn) waBtn.onclick = () => window.open(waLink, '_blank');
+
+    // Open the modal
+    document.getElementById('challenge-create-modal')?.classList.remove('hidden');
+
+    showToast(`Challenge code: ${result.code} — share it with ${opponentName}!`, 'success', 5000);
+
+    // Listen for opponent accepting — then transition both to battle
+    if (_matchUnsubscribe) _matchUnsubscribe();
+    _matchUnsubscribe = listenToMatch(result.matchId, async match => {
+      if (match.status === 'active' && match.opponentId) {
+        if (_matchUnsubscribe) { _matchUnsubscribe(); _matchUnsubscribe = null; }
+        document.getElementById('challenge-create-modal')?.classList.add('hidden');
+        showToast(`${match.opponentName} accepted! Starting battle… ⚔️`, 'success', 3000);
+        setTimeout(() => startBattle(result.matchId, match.questions, match), 1200);
+      }
+    });
+
+  } catch (err) {
+    showToast(err.message || 'Failed to create challenge', 'error');
+  }
+}
+
+// ============================================
 // GLOBAL SQ NAMESPACE
 // ============================================
 window.SQ = {
   switchAuthTab, closeAuthModal, showConfirm, showScreen, showToast,
   openAvatarModal, closeAvatarModal, filterAvatars, selectAvatar, saveSelectedAvatar,
   challengeUser(uid, name) {
-    showToast(`Opening battle screen...`,'info',1500);
-    showScreen('challenge');
+    handleChallengeUser(uid, name);
   }
 };
