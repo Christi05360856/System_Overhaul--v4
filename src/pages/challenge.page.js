@@ -187,13 +187,19 @@ async function handleJoinByCode() {
     const accepted = await acceptChallenge(match.matchId);
     _currentMatchId = match.matchId;
 
-    // Go straight to battle
+        // Go straight to battle
     const bp = await getBattlePage();
+    
+    // FIX: Clean up any old battle state before starting new one
+    const { destroyBattleScreen } = await import('./battle.page.js');
+    destroyBattleScreen();
+    
     _callbacks.onStartBattle?.({
       matchId:   accepted.matchId,
       questions: accepted.questions,
       match:     { ...match, status: 'active' }
     });
+    
 
   } catch (err) {
     showToast(err.message || 'Failed to join challenge', 'error');
