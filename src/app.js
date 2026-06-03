@@ -9,6 +9,9 @@
 //   • Achievements tab
 //   • Settings tab
 //   • Contact details lock after save
+//   • sendRematch + notifyRematchReady
+//   • listenForRematchInvite
+//   • Syntax / brace fix (build error)
 // ============================================
 
 import { initAuthListener, login, register,
@@ -68,42 +71,40 @@ async function getQuizPage() {
   return _quizPage;
 }
 
-// Active local session storage (for local quiz submit)
-let _activeLocalSession   = null;
-let _selectedAvatarId     = null; // temp selection in modal
-let _pendingChallengeCode = null; // from URL param
-let _currentChallenge     = null; // active challenge data
-let _localQuestionsCache  = null; // cached for challenges
-let _activeChallengeMatchId = null; // track if user has an active challenge
-
+let _activeLocalSession     = null;
+let _selectedAvatarId       = null;
+let _pendingChallengeCode   = null;
+let _currentChallenge       = null;
+let _localQuestionsCache    = null;
+let _activeChallengeMatchId = null;
 
 // ============================================
 // SCREEN MANAGEMENT
 // ============================================
 
-const SCREENS = ['loading','landing','quiz','result','leaderboard','rewards','profile','settings','battle','battle-result','challenge'];
-
+const SCREENS = ['loading','landing','quiz','result','leaderboard','rewards',
+                 'profile','settings','battle','battle-result','challenge'];
 
 function showScreen(name) {
   SCREENS.forEach(id => {
     const el = document.getElementById(`screen-${id}`);
     if (el) el.classList.toggle('hidden', id !== name);
   });
- 
+
   const nav   = document.getElementById('bottom-nav');
   const noNav = ['loading','quiz','result','battle','battle-result','challenge'];
   if (nav) nav.classList.toggle('hidden', noNav.includes(name));
- 
+
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.screen === name);
   });
- 
+
   setState('nav', { current: name });
 
-         // FAB: only on landing and leaderboard
+  // FAB: only on landing and leaderboard
   const FAB_SCREENS = ['landing', 'leaderboard'];
   setBattleFabVisible(FAB_SCREENS.includes(name));
- 
+
   if (name === 'leaderboard') initLeaderboardScreen();
   if (name === 'rewards')     initRewardsScreen();
   if (name === 'profile')     initProfileScreen();
@@ -113,7 +114,7 @@ function showScreen(name) {
 }
 
 // ============================================
-// BATTLE FAB VISIBILITY HELPER  [Patch 2]
+// BATTLE FAB VISIBILITY HELPER
 // ============================================
 function setBattleFabVisible(visible) {
   const fab = document.getElementById('battle-fab');
@@ -128,10 +129,8 @@ initAuthListener(
     await initTheme(profile);
     checkNewWeek();
 
-    // [Patch 1] Trigger announcements on login
     checkAndShowAnnouncements().catch(e => console.warn('[Announce]', e.message));
 
-    // Check for challenge code in URL (from WhatsApp link)
     const code = getChallengeCodeFromURL();
     if (code) {
       _pendingChallengeCode = code;
@@ -146,11 +145,8 @@ initAuthListener(
   },
   () => {
     initTheme(null);
-
-    // [Patch 2] Hide FAB on logout
     setBattleFabVisible(false);
 
-    // Check for challenge code — store it, prompt login
     const code = getChallengeCodeFromURL();
     if (code) {
       _pendingChallengeCode = code;
@@ -206,7 +202,6 @@ async function initLandingScreen() {
       : '🌱 Start your streak today!';
   }
 
-  // Only show profile warning if actually incomplete
   if (!profile?.profileComplete && !profile?.phoneNumber) {
     el('profile-incomplete-warn')?.classList.remove('hidden');
   } else {
@@ -283,34 +278,25 @@ async function _checkPendingBattleResult(user) {
     const { PENDING_BATTLE_KEY } = await import('./utils/constants.js');
     const pendingMatchId = localStorage.getItem(PENDING_BATTLE_KEY);
     if (!pendingMatchId) return;
- 
+
     const match = await getMatchResult(pendingMatchId);
     if (!match) { localStorage.removeItem(PENDING_BATTLE_KEY); return; }
- 
+
     if (match.status === 'completed') {
-      // Show result immediately
       localStorage.removeItem(PENDING_BATTLE_KEY);
       showToast('⚔️ Your battle result is ready!', 'success', 3000);
-      setTimeout(() => {
-        showScreen('battle-result');
-        renderBattleResult(match);
-      }, 1000);
+      setTimeout(() => { showScreen('battle-result'); renderBattleResult(match); }, 1000);
     } else if (match.status === 'active') {
-      // Still waiting — re-subscribe silently
       const unsub = listenToMatch(pendingMatchId, completedMatch => {
         if (completedMatch.status === 'completed') {
           unsub();
           localStorage.removeItem(PENDING_BATTLE_KEY);
           showToast('⚔️ Battle result is in!', 'success', 3000);
-          setTimeout(() => {
-            showScreen('battle-result');
-            renderBattleResult(completedMatch);
-          }, 500);
+          setTimeout(() => { showScreen('battle-result'); renderBattleResult(completedMatch); }, 500);
         }
       });
       showToast('Still waiting for opponent to finish your battle…', 'info', 4000);
     } else {
-      // Expired / unknown
       localStorage.removeItem(PENDING_BATTLE_KEY);
     }
   } catch(e) {
@@ -380,7 +366,7 @@ async function initRewardsScreen() {
 }
 
 // ============================================
-// PROFILE SCREEN  (with Achievements tab)
+// PROFILE SCREEN
 // ============================================
 function initProfileScreen() {
   const user    = getCurrentUser();
@@ -391,7 +377,6 @@ function initProfileScreen() {
   const el   = id => document.getElementById(id);
   const name = profile?.displayName || user.displayName || 'User';
 
-  // Mount SVG avatar instead of initials
   const avatarId = getAvatarId(profile);
   _selectedAvatarId = avatarId;
   mountAvatar(avatarId, el('profile-avatar'));
@@ -404,7 +389,6 @@ function initProfileScreen() {
     el('profile-joined').textContent = `Joined ${d.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}`;
   }
 
-  // If contact is already saved, show read-only — don't let them keep editing
   const contactSection = el('contact-edit-section');
   const contactDisplay = el('contact-display-section');
 
@@ -427,8 +411,7 @@ function initProfileScreen() {
   const safeStats = stats || {
     totalXp: 0, level: 1, currentLevelXp: 0,
     currentStreak: 0, longestStreak: 0,
-    quizzesTaken: 0, bestScore: 0, perfectScores: 0,
-    topThreeFinishes: 0
+    quizzesTaken: 0, bestScore: 0, perfectScores: 0, topThreeFinishes: 0
   };
 
   const xp      = safeStats.totalXp     || 0;
@@ -450,10 +433,8 @@ function initProfileScreen() {
   if (el('p-lvl-next'))       el('p-lvl-next').textContent        = level + 1;
   if (el('p-xp-needed-2'))    el('p-xp-needed-2').textContent     = needed.toLocaleString();
 
-  // Always render achievements — locked ones show for new users too
   renderAchievements(safeStats);
 
-  // Highlight active theme button
   const currentTheme = getState('theme')?.current || 'light';
   document.querySelectorAll('.theme-pref-btn').forEach(btn => {
     btn.classList.toggle('btn-primary',   btn.dataset.theme === currentTheme);
@@ -461,7 +442,6 @@ function initProfileScreen() {
   });
 }
 
-// Profile sub-tabs (Stats / Achievements)
 function switchProfileTab(tab) {
   document.querySelectorAll('.profile-tab-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.tab === tab));
@@ -480,22 +460,18 @@ function renderAchievements(stats) {
   const top3    = stats.topThreeFinishes || 0;
 
   const BADGES = [
-    // ── BRONZE tier ──
     { id:'first_quiz', icon:'📖', tier:'bronze', crown:'🥉', name:'First Steps',      req:'Complete your first quiz',   done:quizzes>=1,   progress:Math.min(100,(quizzes/1)*100) },
     { id:'streak3',    icon:'🔥', tier:'bronze', crown:'🥉', name:'On Fire',           req:'3-day streak',               done:streak>=3,    progress:Math.min(100,(streak/3)*100) },
     { id:'perfect1',   icon:'💯', tier:'bronze', crown:'🥉', name:'Perfectionist',     req:'Score 100% once',            done:perfect>=1,   progress:Math.min(100,(perfect/1)*100) },
     { id:'xp500',      icon:'⭐', tier:'bronze', crown:'🥉', name:'XP Rising',         req:'Earn 500 XP',                done:xp>=500,      progress:Math.min(100,(xp/500)*100) },
-    // ── SILVER tier ──
     { id:'quiz10',     icon:'📚', tier:'silver', crown:'🥈', name:'Dedicated',         req:'Complete 10 quizzes',        done:quizzes>=10,  progress:Math.min(100,(quizzes/10)*100) },
     { id:'streak7',    icon:'🌟', tier:'silver', crown:'🥈', name:'Week Warrior',      req:'7-day streak',               done:streak>=7,    progress:Math.min(100,(streak/7)*100) },
     { id:'perfect3',   icon:'🎯', tier:'silver', crown:'🥈', name:'Sharp Mind',        req:'3 perfect scores',           done:perfect>=3,   progress:Math.min(100,(perfect/3)*100) },
     { id:'xp2000',     icon:'💫', tier:'silver', crown:'🥈', name:'XP Grinder',        req:'Earn 2,000 XP',              done:xp>=2000,     progress:Math.min(100,(xp/2000)*100) },
-    // ── GOLD tier ──
     { id:'quiz50',     icon:'🎓', tier:'gold',   crown:'🥇', name:'Bible Scholar',     req:'Complete 50 quizzes',        done:quizzes>=50,  progress:Math.min(100,(quizzes/50)*100) },
     { id:'streak30',   icon:'🔆', tier:'gold',   crown:'🥇', name:'Monthly Champion',  req:'30-day streak',              done:streak>=30,   progress:Math.min(100,(streak/30)*100) },
     { id:'top3',       icon:'🏆', tier:'gold',   crown:'🥇', name:'Podium Finisher',   req:'Finish Top 3 weekly',        done:top3>=1,      progress:Math.min(100,(top3/1)*100) },
     { id:'xp10000',    icon:'💎', tier:'gold',   crown:'🥇', name:'XP Master',         req:'Earn 10,000 XP',             done:xp>=10000,    progress:Math.min(100,(xp/10000)*100) },
-    // ── LEGENDARY tier ──
     { id:'quiz100',    icon:'👑', tier:'legendary', crown:'✨', name:'Legend',          req:'Complete 100 quizzes',       done:quizzes>=100, progress:Math.min(100,(quizzes/100)*100) },
     { id:'streak100',  icon:'🚀', tier:'legendary', crown:'✨', name:'Unstoppable',     req:'100-day streak',             done:streak>=100,  progress:Math.min(100,(streak/100)*100) },
     { id:'perfect10',  icon:'🌠', tier:'legendary', crown:'✨', name:'Flawless Master', req:'10 perfect scores',          done:perfect>=10,  progress:Math.min(100,(perfect/10)*100) },
@@ -514,31 +490,16 @@ function renderAchievements(stats) {
   const featuredEl = document.getElementById('profile-featured-badge');
   if (featuredEl) {
     const best = earned.slice().reverse()[0];
-    if (best) {
-      featuredEl.innerHTML = `${best.icon} ${best.name}`;
-      featuredEl.classList.remove('hidden');
-    }
+    if (best) { featuredEl.innerHTML = `${best.icon} ${best.name}`; featuredEl.classList.remove('hidden'); }
   }
 
   const statsBar = document.getElementById('badges-stats-bar');
   if (statsBar) {
     statsBar.innerHTML = `
-      <div class="badges-stat-chip chip-bronze">
-        <div class="badges-stat-chip-value">${bronzeCount}</div>
-        <div class="badges-stat-chip-label">🥉 Bronze</div>
-      </div>
-      <div class="badges-stat-chip chip-silver">
-        <div class="badges-stat-chip-value">${silverCount}</div>
-        <div class="badges-stat-chip-label">🥈 Silver</div>
-      </div>
-      <div class="badges-stat-chip chip-gold">
-        <div class="badges-stat-chip-value">${goldCount}</div>
-        <div class="badges-stat-chip-label">🥇 Gold</div>
-      </div>
-      <div class="badges-stat-chip chip-legendary">
-        <div class="badges-stat-chip-value">${legCount}</div>
-        <div class="badges-stat-chip-label">✨ Legend</div>
-      </div>`;
+      <div class="badges-stat-chip chip-bronze"><div class="badges-stat-chip-value">${bronzeCount}</div><div class="badges-stat-chip-label">🥉 Bronze</div></div>
+      <div class="badges-stat-chip chip-silver"><div class="badges-stat-chip-value">${silverCount}</div><div class="badges-stat-chip-label">🥈 Silver</div></div>
+      <div class="badges-stat-chip chip-gold"><div class="badges-stat-chip-value">${goldCount}</div><div class="badges-stat-chip-label">🥇 Gold</div></div>
+      <div class="badges-stat-chip chip-legendary"><div class="badges-stat-chip-value">${legCount}</div><div class="badges-stat-chip-label">✨ Legend</div></div>`;
   }
 
   container.innerHTML = BADGES.map(b => `
@@ -550,10 +511,7 @@ function renderAchievements(stats) {
       <div class="badge-name">${b.name}</div>
       <div class="badge-req">${b.req}</div>
       <span class="badge-tier-label">${b.tier}</span>
-      ${!b.done && b.progress > 0 ? `
-        <div class="badge-progress-bar">
-          <div class="badge-progress-fill" style="width:${Math.round(b.progress)}%"></div>
-        </div>` : ''}
+      ${!b.done && b.progress > 0 ? `<div class="badge-progress-bar"><div class="badge-progress-fill" style="width:${Math.round(b.progress)}%"></div></div>` : ''}
     </div>`).join('');
 }
 
@@ -643,7 +601,7 @@ function handleQuizAbandon() {
 // RESULT SCREEN
 // ============================================
 function renderResultScreen(result) {
-  const el    = id => document.getElementById(id);
+  const el     = id => document.getElementById(id);
   const pct    = result.percentage || 0;
   const passed = pct >= SCORE_PASS_THRESHOLD;
 
@@ -653,10 +611,10 @@ function renderResultScreen(result) {
   if (el('result-pct'))     el('result-pct').textContent     = `${pct}%`;
   if (el('result-detail'))  el('result-detail').textContent  = `${result.score} / ${result.totalQuestions} correct`;
   if (el('result-xp'))      el('result-xp').textContent      = `+${result.xpEarned || 0} XP`;
-  if (el('r-streak'))       el('r-streak').textContent        = result.streak        || 0;
-  if (el('r-level'))        el('r-level').textContent         = result.newLevel      || 1;
-  if (el('r-total-xp'))     el('r-total-xp').textContent      = (result.totalXp || 0).toLocaleString();
-  if (el('r-weekly-pts'))   el('r-weekly-pts').textContent    = (result.weeklyPoints || 0).toLocaleString();
+  if (el('r-streak'))       el('r-streak').textContent       = result.streak       || 0;
+  if (el('r-level'))        el('r-level').textContent        = result.newLevel     || 1;
+  if (el('r-total-xp'))     el('r-total-xp').textContent     = (result.totalXp || 0).toLocaleString();
+  if (el('r-weekly-pts'))   el('r-weekly-pts').textContent   = (result.weeklyPoints || 0).toLocaleString();
 
   const badge = el('result-badge');
   if (badge) {
@@ -774,56 +732,48 @@ function showConfirm({ icon='⚠️', title, message, onConfirm }) {
 // EVENT WIRING
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
-         document.getElementById('challenge-cancel-btn')?.addEventListener('click', cancelActiveChallenge);
-           // Leaderboard: Join Challenge by code
+
+  document.getElementById('challenge-cancel-btn')?.addEventListener('click', cancelActiveChallenge);
+
+  // Leaderboard: Join by code
   document.getElementById('lb-join-code-btn')?.addEventListener('click', async () => {
-    const input = document.getElementById('lb-join-code-input');
+    const input   = document.getElementById('lb-join-code-input');
     const rawCode = input?.value?.trim() || '';
-    const code = rawCode.replace(/:\d+$/, '').toUpperCase();
-    
+    const code    = rawCode.replace(/:\d+$/, '').toUpperCase();
+
     if (!code || !code.startsWith('SQ-')) {
       showToast('Enter a valid challenge code (e.g. SQ-AB12)', 'error');
       return;
     }
 
-    const btn = document.getElementById('lb-join-code-btn');
+    const btn          = document.getElementById('lb-join-code-btn');
     const originalText = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Joining…';
 
     try {
       const matchData = await getChallengeByCode(code);
-      if (!matchData) {
-        throw new Error('Challenge not found. Check the code and try again.');
-      }
-      if (matchData.status !== 'waiting') {
-        throw new Error('This challenge is no longer available.');
-      }
-      if (matchData.creatorId === getCurrentUser()?.uid) {
-        throw new Error("You can't join your own challenge!");
-      }
+      if (!matchData)                              throw new Error('Challenge not found. Check the code and try again.');
+      if (matchData.status !== 'waiting')          throw new Error('This challenge is no longer available.');
+      if (matchData.creatorId === getCurrentUser()?.uid) throw new Error("You can't join your own challenge!");
 
       const { matchId, questions } = await acceptChallenge(matchData.matchId);
       showToast('Challenge accepted! Battle starting… ⚔️', 'success', 2000);
-      
-            // FIX: Clean up any old battle state before starting new one
+
       const { destroyBattleScreen } = await import('./pages/battle.page.js');
       destroyBattleScreen();
       setTimeout(() => startBattle(matchId, questions, { ...matchData, questions }), 800);
-             
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
-      btn.disabled = false;
+      btn.disabled  = false;
       btn.innerHTML = originalText;
     }
   });
 
-  // Allow Enter key on join input
   document.getElementById('lb-join-code-input')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('lb-join-code-btn')?.click();
   });
-         
 
   // Auth modal
   document.getElementById('open-auth-btn')?.addEventListener('click', openAuthModal);
@@ -889,7 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('start-quiz-btn')?.addEventListener('click',  () => handleStartQuiz(false));
   document.getElementById('resume-quiz-btn')?.addEventListener('click', () => handleStartQuiz(true));
 
-    // Bottom nav
+  // Bottom nav
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.dataset.screen;
@@ -899,11 +849,8 @@ document.addEventListener('DOMContentLoaded', () => {
         unsubscribeLeaderboard();
         if (_lbCountdownTimer) clearInterval(_lbCountdownTimer);
       }
-      
-      // FIX: BATTLE icon goes to challenge lobby, not empty battle screen
       if (target === 'battle') {
         if (_activeChallengeMatchId && _currentChallenge) {
-          // Already has active challenge, show modal again
           openChallengeModal();
         } else {
           showScreen('challenge');
@@ -913,7 +860,6 @@ document.addEventListener('DOMContentLoaded', () => {
       showScreen(target);
     });
   });
-         
 
   // Result buttons
   document.getElementById('view-leaderboard-btn')?.addEventListener('click', () => showScreen('leaderboard'));
@@ -946,29 +892,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Theme pref buttons (in profile)
   document.querySelectorAll('.theme-pref-btn').forEach(btn => {
     btn.addEventListener('click', () => { setTheme(btn.dataset.theme); initProfileScreen(); });
   });
 
-  // Theme toggles
   ['quiz-theme-toggle','lb-theme-toggle'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', toggleTheme);
   });
 
-  // Logout (profile)
   document.getElementById('logout-btn')?.addEventListener('click', () => {
     showConfirm({ icon:'👋', title:'Sign Out', message:'Are you sure you want to sign out?',
       onConfirm: async () => { await logout(); showScreen('landing'); }
     });
   });
 
-  // Settings: dark mode toggle
   document.getElementById('setting-dark-mode')?.addEventListener('change', e => {
     setTheme(e.target.checked ? 'dark' : 'light');
   });
 
-  // Settings: sound toggle
   document.getElementById('setting-sound')?.addEventListener('change', async e => {
     const user = getCurrentUser();
     if (!user) return;
@@ -977,7 +918,6 @@ document.addEventListener('DOMContentLoaded', () => {
     await updateDoc(doc(db, 'users', user.uid), { soundEnabled: e.target.checked });
   });
 
-  // Settings: notifications toggle
   document.getElementById('setting-notifications')?.addEventListener('change', async e => {
     if (e.target.checked) {
       const { requestPushPermission } = await import('./services/notification.service.js');
@@ -991,40 +931,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Settings: logout button
   document.getElementById('settings-logout-btn')?.addEventListener('click', () => {
     showConfirm({ icon:'👋', title:'Sign Out', message:'Are you sure you want to sign out?',
       onConfirm: async () => { await logout(); showScreen('landing'); }
     });
   });
 
-  // Settings: WhatsApp button
   document.getElementById('whatsapp-contact-btn')?.addEventListener('click', () => {
     window.open('https://wa.me/+2349030000000?text=Hi%2C%20I%20need%20help%20with%20ScriptureQuest', '_blank');
   });
 
-  // Level up modal
   document.getElementById('levelup-close-btn')?.addEventListener('click', () => {
     document.getElementById('levelup-modal')?.classList.add('hidden');
   });
 
-  // Confirm modal cancel
   document.getElementById('confirm-cancel-btn')?.addEventListener('click', () => {
     document.getElementById('confirm-modal')?.classList.add('hidden');
   });
 
-  // New week banner
   document.getElementById('new-week-dismiss')?.addEventListener('click', () => {
     document.getElementById('new-week-banner')?.classList.add('hidden');
   });
 
-  // Profile incomplete → go to profile
   document.getElementById('go-profile-btn')?.addEventListener('click', () => showScreen('profile'));
-
-  // Leaderboard refresh
   document.getElementById('lb-refresh-btn')?.addEventListener('click', () => initLeaderboardScreen());
 
-  // Service worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
       .then(reg => console.log('[SW] Registered:', reg.scope))
@@ -1042,7 +973,6 @@ function openChallengeModal() {
   const user = getCurrentUser();
   if (!user) { openAuthModal(); return; }
 
-  // If already has active challenge, show waiting screen instead
   if (_activeChallengeMatchId && _currentChallenge) {
     const codeBox       = document.getElementById('challenge-code-box');
     const createActions = document.getElementById('challenge-create-actions');
@@ -1050,11 +980,8 @@ function openChallengeModal() {
     if (codeBox)       codeBox.classList.remove('hidden');
     if (createActions) createActions.classList.add('hidden');
     if (shareActions)  shareActions.classList.remove('hidden');
-    
-    // Restore code display
     const codeDisplay = document.getElementById('challenge-code-display');
     if (codeDisplay) codeDisplay.textContent = _currentChallenge.code || '—';
-    
     document.getElementById('challenge-create-modal')?.classList.remove('hidden');
     return;
   }
@@ -1069,16 +996,14 @@ function openChallengeModal() {
   document.getElementById('challenge-create-modal')?.classList.remove('hidden');
 }
 
-
 function closeChallengeModal() {
   document.getElementById('challenge-create-modal')?.classList.add('hidden');
   _challengeWhatsappUrl = null;
 }
 
 async function generateChallenge() {
-  // GUARD: Don't create if already have active challenge
   if (_activeChallengeMatchId) {
-    showToast('You already have an active challenge! Check your notifications or wait for opponent.', 'warning');
+    showToast('You already have an active challenge! Wait for opponent to accept.', 'warning');
     return;
   }
 
@@ -1087,17 +1012,13 @@ async function generateChallenge() {
   btn.textContent = 'Generating…';
 
   try {
-    if (!_localQuestionsCache) {
-      _localQuestionsCache = await getLocalQuestions();
-    }
-    if (!_localQuestionsCache.length) {
-      throw new Error('No questions available yet. Add questions first.');
-    }
+    if (!_localQuestionsCache) _localQuestionsCache = await getLocalQuestions();
+    if (!_localQuestionsCache.length) throw new Error('No questions available yet. Add questions first.');
 
     const result = await createChallenge(_localQuestionsCache);
-    _activeChallengeMatchId = result.matchId; // TRACK active challenge
-    _challengeWhatsappUrl = result.whatsappUrl;
-    _currentChallenge     = result;
+    _activeChallengeMatchId = result.matchId;
+    _challengeWhatsappUrl   = result.whatsappUrl;
+    _currentChallenge       = result;
 
     const codeDisplay = document.getElementById('challenge-code-display');
     const codeBox     = document.getElementById('challenge-code-box');
@@ -1107,17 +1028,14 @@ async function generateChallenge() {
     document.getElementById('challenge-create-actions')?.classList.add('hidden');
     document.getElementById('challenge-share-actions')?.classList.remove('hidden');
 
-    // FIX: WhatsApp button — build link properly
     const profile = getUserProfile();
-    const name = profile?.displayName || 'Someone';
-    const appUrl = window.location.origin + window.location.pathname;
-    const waLink = generateWhatsAppLink(result.code, name, appUrl);
-    
-    const waBtn = document.getElementById('whatsapp-share-btn');
+    const name    = profile?.displayName || 'Someone';
+    const appUrl  = window.location.origin + window.location.pathname;
+    const waLink  = generateWhatsAppLink(result.code, name, appUrl);
+    const waBtn   = document.getElementById('whatsapp-share-btn');
     if (waBtn) waBtn.onclick = () => window.open(waLink, '_blank');
 
     showToast(`Challenge created! Code: ${result.code}`, 'success', 5000);
-           
   } catch (err) {
     showToast(err.message, 'error');
     btn.disabled  = false;
@@ -1128,12 +1046,11 @@ async function generateChallenge() {
 function cancelActiveChallenge() {
   if (_matchUnsubscribe) { _matchUnsubscribe(); _matchUnsubscribe = null; }
   _activeChallengeMatchId = null;
-  _currentChallenge = null;
-  _challengeWhatsappUrl = null;
+  _currentChallenge       = null;
+  _challengeWhatsappUrl   = null;
   closeChallengeModal();
   showToast('Challenge cancelled', 'info');
 }
-
 
 function showChallengeAcceptModal(code = '') {
   const input = document.getElementById('challenge-code-input');
@@ -1146,37 +1063,29 @@ function closeChallengeAcceptModal() {
 }
 
 async function acceptChallengeByCode() {
-  const input = document.getElementById('challenge-code-input');
+  const input   = document.getElementById('challenge-code-input');
   const rawCode = input?.value?.trim() || '';
-  const code = rawCode.replace(/:\d+$/, '').toUpperCase();
+  const code    = rawCode.replace(/:\d+$/, '').toUpperCase();
   if (!code) return showToast('Please enter a challenge code', 'error');
 
   const btn = document.getElementById('accept-challenge-btn');
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = 'Accepting…';
 
   try {
-    // Step 1: Look up the match by code FIRST
     const matchData = await getChallengeByCode(code);
-    if (!matchData) {
-      throw new Error('Challenge not found. Check the code and try again.');
-    }
+    if (!matchData) throw new Error('Challenge not found. Check the code and try again.');
 
-    // Step 2: Now accept using the actual matchId
     const { matchId, questions } = await acceptChallenge(matchData.matchId);
-
     closeChallengeAcceptModal();
-    showToast(`Challenge accepted! Good luck! ⚔️`, 'success', 3000);
+    showToast('Challenge accepted! Good luck! ⚔️', 'success', 3000);
 
-        // Step 3: Start the battle
-    // FIX: Clean up any old battle state before starting new one
     const { destroyBattleScreen } = await import('./pages/battle.page.js');
     destroyBattleScreen();
-    
+
     const challengePage = await import('./pages/challenge.page.js');
     showScreen('battle');
     await challengePage.initChallengePage(matchId, { ...matchData, questions }, {
-             
       onDone: (result) => {
         if (result.action === 'rematch') {
           openChallengeModal();
@@ -1188,32 +1097,28 @@ async function acceptChallengeByCode() {
     });
   } catch (err) {
     showToast(err.message, 'error');
-    btn.disabled = false;
+    btn.disabled  = false;
     btn.innerHTML = '<i class="fas fa-fist-raised"></i> Accept Challenge!';
   }
 }
 
-
 // ============================================
-// CHALLENGE SCREEN
+// CHALLENGE SCREEN (lobby)
 // ============================================
 let _currentMatchId   = null;
 let _currentMatchData = null;
 let _matchUnsubscribe = null;
 let _appUrl = window.location.origin;
 
-// FIX: Initialize challenge lobby page
 async function initChallengeScreen() {
   const user = getCurrentUser();
   if (!user) { openAuthModal(); return; }
-  
+
   try {
     const challengePage = await import('./pages/challenge.page.js');
     await challengePage.initChallengePage({
-      onBack: () => { showScreen('landing'); initLandingScreen(); },
-      onStartBattle: ({ matchId, questions, match }) => {
-        startBattle(matchId, questions, match);
-      }
+      onBack:         () => { showScreen('landing'); initLandingScreen(); },
+      onStartBattle:  ({ matchId, questions, match }) => { startBattle(matchId, questions, match); }
     });
   } catch (err) {
     console.error('[App] Failed to init challenge screen:', err);
@@ -1229,8 +1134,9 @@ async function showCreateChallengeUI() {
 
   try {
     const questions = await getLocalQuestions();
-    if (!questions.length) { showToast('Questions not loaded yet','error'); return; }
-    const { matchId, code, expiresAt, questions: qs } = await createChallenge(questions);
+    if (!questions.length) { showToast('Questions not loaded yet', 'error'); return; }
+
+    const { matchId, code, questions: qs } = await createChallenge(questions);
     _currentMatchId   = matchId;
     _currentMatchData = { questions: qs };
 
@@ -1248,14 +1154,13 @@ async function showCreateChallengeUI() {
     document.getElementById('challenge-new-btn')?.addEventListener('click', showCreateChallengeUI);
 
     if (_matchUnsubscribe) _matchUnsubscribe();
-        _matchUnsubscribe = listenToMatch(matchId, match => {
+    _matchUnsubscribe = listenToMatch(matchId, match => {
       if (match.status === 'active' && match.opponentId) {
-        _activeChallengeMatchId = null; // Clear — battle is starting
+        _activeChallengeMatchId = null;
         showToast(`${match.opponentName} accepted your challenge! 🔥`, 'success', 4000);
         setTimeout(() => startBattle(matchId, match.questions, match), 1500);
       }
     });
-           
   } catch(err) {
     showToast(err.message, 'error');
   }
@@ -1264,60 +1169,49 @@ async function showCreateChallengeUI() {
 async function handleIncomingChallenge(code) {
   document.getElementById('challenge-create-section')?.classList.add('hidden');
   document.getElementById('challenge-accept-section')?.classList.remove('hidden');
-  
+
   try {
-    const match = await getChallengeByCode(code);  // ← look up by code
-    if (!match) { 
-      showToast('Challenge not found or expired', 'error'); 
-      return; 
-    }
-    
-    _currentMatchId = match.matchId;
+    const match = await getChallengeByCode(code);
+    if (!match) { showToast('Challenge not found or expired', 'error'); return; }
+
+    _currentMatchId   = match.matchId;
     _currentMatchData = match;
-    
+
     const nameEl = document.getElementById('challenge-from-name');
     if (nameEl) nameEl.textContent = `⚔️ ${match.creatorName} challenged you to a Bible battle!`;
-    
+
     window.history.replaceState({}, document.title, window.location.pathname);
-    
-    // Clean up old listeners before adding new ones
-    const acceptBtn = document.getElementById('challenge-accept-btn');
+
+    const acceptBtn    = document.getElementById('challenge-accept-btn');
     const newAcceptBtn = acceptBtn?.cloneNode(true);
     if (acceptBtn && newAcceptBtn) {
       acceptBtn.parentNode.replaceChild(newAcceptBtn, acceptBtn);
       newAcceptBtn.addEventListener('click', async () => {
         try {
-           const result = await acceptChallenge(match.matchId);  // ← use matchId here
-          
-          // FIX: Clean up old battle state
+          const result = await acceptChallenge(match.matchId);
           const { destroyBattleScreen } = await import('./pages/battle.page.js');
           destroyBattleScreen();
-          
           startBattle(match.matchId, result.questions, match);
-                 
-        } catch(err) { 
-          showToast(err.message, 'error'); 
-        }
+        } catch(err) { showToast(err.message, 'error'); }
       });
     }
-    
-    const declineBtn = document.getElementById('challenge-decline-btn');
+
+    const declineBtn    = document.getElementById('challenge-decline-btn');
     const newDeclineBtn = declineBtn?.cloneNode(true);
     if (declineBtn && newDeclineBtn) {
       declineBtn.parentNode.replaceChild(newDeclineBtn, declineBtn);
       newDeclineBtn.addEventListener('click', () => showScreen('landing'));
     }
-    
   } catch(err) {
     showToast('Failed to load challenge', 'error');
   }
 }
 
-
-// [Patch 2] setBattleFabVisible called here
+// ============================================
+// BATTLE
+// ============================================
 async function startBattle(matchId, questions, match) {
   setBattleFabVisible(true);
-  // FIX: Clean up any old battle state before starting new one
   const { destroyBattleScreen } = await import('./pages/battle.page.js');
   destroyBattleScreen();
   const { initBattleScreen } = await import('./pages/battle.page.js');
@@ -1339,18 +1233,19 @@ function handleBattleWaiting(matchId) {
   });
 }
 
-// [Patch 2] setBattleFabVisible called here
 async function handleBattleComplete(match) {
   setBattleFabVisible(false);
-         _activeChallengeMatchId = null; // Clear after battle done
+  _activeChallengeMatchId = null;
   if (_matchUnsubscribe) { _matchUnsubscribe(); _matchUnsubscribe = null; }
-  // FIX: Clean up battle screen
   const { destroyBattleScreen } = await import('./pages/battle.page.js');
   destroyBattleScreen();
   showScreen('battle-result');
   renderBattleResult(match);
 }
 
+// ============================================
+// BATTLE RESULT
+// ============================================
 function renderBattleResult(match) {
   const user      = getCurrentUser();
   const isCreator = match.creatorId === user?.uid;
@@ -1368,24 +1263,24 @@ function renderBattleResult(match) {
   const isDraw    = winnerId === 'draw';
 
   const el = id => document.getElementById(id);
-  if(el('battle-result-icon'))      el('battle-result-icon').textContent      = isDraw?'🤝':iWon?'🏆':'😔';
-  if(el('battle-result-title'))     el('battle-result-title').textContent     = isDraw?"It's a Draw!":iWon?'You Win! 🎉':'You Lost!';
-  if(el('battle-result-sub'))       el('battle-result-sub').textContent       = isDraw?'Well played by both!':iWon?`You beat ${oppName}!`:`${oppName} got you this time!`;
-  if(el('battle-result-my-name'))   el('battle-result-my-name').textContent   = myName||'You';
-  if(el('battle-result-my-pct'))    el('battle-result-my-pct').textContent    = `${myPct||0}%`;
-  if(el('battle-result-my-score'))  el('battle-result-my-score').textContent  = `${myScore||0}/${total}`;
-  if(el('battle-result-opp-name'))  el('battle-result-opp-name').textContent  = oppName||'Opponent';
-  if(el('battle-result-opp-pct'))   el('battle-result-opp-pct').textContent   = `${oppPct||0}%`;
-  if(el('battle-result-opp-score')) el('battle-result-opp-score').textContent = `${oppScore||0}/${total}`;
-  if(el('battle-result-xp'))        el('battle-result-xp').textContent        = `+${iWon?50:isDraw?25:10} XP Battle Bonus!`;
+  if (el('battle-result-icon'))      el('battle-result-icon').textContent      = isDraw ? '🤝' : iWon ? '🏆' : '😔';
+  if (el('battle-result-title'))     el('battle-result-title').textContent     = isDraw ? "It's a Draw!" : iWon ? 'You Win! 🎉' : 'You Lost!';
+  if (el('battle-result-sub'))       el('battle-result-sub').textContent       = isDraw ? 'Well played by both!' : iWon ? `You beat ${oppName}!` : `${oppName} got you this time!`;
+  if (el('battle-result-my-name'))   el('battle-result-my-name').textContent   = myName  || 'You';
+  if (el('battle-result-my-pct'))    el('battle-result-my-pct').textContent    = `${myPct  || 0}%`;
+  if (el('battle-result-my-score'))  el('battle-result-my-score').textContent  = `${myScore || 0}/${total}`;
+  if (el('battle-result-opp-name'))  el('battle-result-opp-name').textContent  = oppName || 'Opponent';
+  if (el('battle-result-opp-pct'))   el('battle-result-opp-pct').textContent   = `${oppPct  || 0}%`;
+  if (el('battle-result-opp-score')) el('battle-result-opp-score').textContent = `${oppScore || 0}/${total}`;
+  if (el('battle-result-xp'))        el('battle-result-xp').textContent        = `+${iWon ? 50 : isDraw ? 25 : 10} XP Battle Bonus!`;
 
   const myCard  = el('battle-score-me');
   const oppCard = el('battle-score-opponent');
-  if (myCard  && iWon)            myCard.classList.add('battle-winner');
+  if (myCard  && iWon)             myCard.classList.add('battle-winner');
   if (oppCard && !iWon && !isDraw) oppCard.classList.add('battle-winner');
 
-  mountAvatar(myAvatar||'M01',  el('battle-result-my-avatar'));
-  mountAvatar(oppAvatar||'M01', el('battle-result-opp-avatar'));
+  mountAvatar(myAvatar  || 'M01', el('battle-result-my-avatar'));
+  mountAvatar(oppAvatar || 'M01', el('battle-result-opp-avatar'));
 
   const thread = el('battle-thread');
   if (thread && match.messages) {
@@ -1395,59 +1290,102 @@ function renderBattleResult(match) {
       </div>`).join('');
   }
 
- el('battle-rematch-btn')?.addEventListener('click', async () => {
-  const btn = el('battle-rematch-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
- 
-  try {
-    if (!_localQuestionsCache) _localQuestionsCache = await getLocalQuestions();
- 
-    // sendRematch now creates a brand-new match and returns {matchId, code, questions}
-    const result = await sendRematch(match.matchId, _localQuestionsCache);
-    _currentChallenge = result;
- 
-    const codeDisplay   = document.getElementById('challenge-code-display');
-    const codeBox       = document.getElementById('challenge-code-box');
-    const createActions = document.getElementById('challenge-create-actions');
-    const shareActions  = document.getElementById('challenge-share-actions');
- 
-    if (codeDisplay) codeDisplay.textContent = result.code;
-    if (codeBox)     codeBox.classList.remove('hidden');
-    if (createActions) createActions.classList.add('hidden');
-    if (shareActions)  shareActions.classList.remove('hidden');
- 
-    const user   = getCurrentUser();
-    const appUrl = window.location.origin;
-    const waLink = generateWhatsAppLink(result.code, user?.displayName || 'Someone', appUrl);
-    const waBtn  = document.getElementById('whatsapp-share-btn');
-    if (waBtn) waBtn.onclick = () => window.open(waLink, '_blank');
- 
-    document.getElementById('challenge-create-modal')?.classList.remove('hidden');
-    showToast(`Rematch ready! New code: ${result.code}`, 'success', 5000);
- 
-    // Listen for opponent accepting
-    if (_matchUnsubscribe) _matchUnsubscribe();
-    _matchUnsubscribe = listenToMatch(result.matchId, async updatedMatch => {
-      if (updatedMatch.status === 'active' && updatedMatch.opponentId) {
-        if (_matchUnsubscribe) { _matchUnsubscribe(); _matchUnsubscribe = null; }
-        document.getElementById('challenge-create-modal')?.classList.add('hidden');
-        showToast(`${updatedMatch.opponentName} accepted! Starting rematch… ⚔️`, 'success', 3000);
-        setTimeout(() => startBattle(result.matchId, updatedMatch.questions, updatedMatch), 1200);
+  // Rematch button
+  const rematchBtn = el('battle-rematch-btn');
+  if (rematchBtn) {
+    const newBtn = rematchBtn.cloneNode(true);
+    rematchBtn.parentNode.replaceChild(newBtn, rematchBtn);
+    newBtn.addEventListener('click', async () => {
+      newBtn.disabled = true;
+      newBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
+
+      try {
+        if (!_localQuestionsCache) _localQuestionsCache = await getLocalQuestions();
+
+        // sendRematch creates a brand-new match and returns {matchId, code, questions}
+        const result = await sendRematch(match.matchId, _localQuestionsCache);
+        _currentChallenge = result;
+
+        // ── NEW: notify the other player about the rematch ──
+        try {
+          const { notifyRematchReady } = await import('./services/notification.service.js');
+          await notifyRematchReady(
+            match.matchId, result.code, result.matchId,
+            getCurrentUser()?.displayName || 'Someone'
+          );
+        } catch(e) { console.warn('[Rematch] notify failed (non-fatal):', e.message); }
+
+        // ── NEW: listen for the other player's rematch invite on the OLD match ──
+        listenForRematchInvite(match.matchId, ({ code: rematchCode }) => {
+          showToast(`⚔️ Rematch available! Code: ${rematchCode}`, 'success', 10000);
+          const input = document.getElementById('challenge-code-input');
+          if (input) input.value = rematchCode;
+          showChallengeAcceptModal(rematchCode);
+        });
+
+        const codeDisplay   = document.getElementById('challenge-code-display');
+        const codeBox       = document.getElementById('challenge-code-box');
+        const createActions = document.getElementById('challenge-create-actions');
+        const shareActions  = document.getElementById('challenge-share-actions');
+
+        if (codeDisplay)   codeDisplay.textContent = result.code;
+        if (codeBox)       codeBox.classList.remove('hidden');
+        if (createActions) createActions.classList.add('hidden');
+        if (shareActions)  shareActions.classList.remove('hidden');
+
+        const appUrl = window.location.origin;
+        const waLink = generateWhatsAppLink(result.code, getCurrentUser()?.displayName || 'Someone', appUrl);
+        const waBtn  = document.getElementById('whatsapp-share-btn');
+        if (waBtn) waBtn.onclick = () => window.open(waLink, '_blank');
+
+        document.getElementById('challenge-create-modal')?.classList.remove('hidden');
+        showToast(`Rematch ready! New code: ${result.code}`, 'success', 5000);
+
+        if (_matchUnsubscribe) _matchUnsubscribe();
+        _matchUnsubscribe = listenToMatch(result.matchId, async updatedMatch => {
+          if (updatedMatch.status === 'active' && updatedMatch.opponentId) {
+            if (_matchUnsubscribe) { _matchUnsubscribe(); _matchUnsubscribe = null; }
+            document.getElementById('challenge-create-modal')?.classList.add('hidden');
+            showToast(`${updatedMatch.opponentName} accepted! Starting rematch… ⚔️`, 'success', 3000);
+            setTimeout(() => startBattle(result.matchId, updatedMatch.questions, updatedMatch), 1200);
+          }
+        });
+
+      } catch(err) {
+        showToast(err.message || 'Failed to create rematch', 'error');
+        newBtn.disabled = false;
+        newBtn.innerHTML = '🔄 Request Rematch';
       }
     });
- 
-  } catch(err) {
-    showToast(err.message || 'Failed to create rematch', 'error');
-    btn.disabled = false;
-    btn.innerHTML = '🔄 Request Rematch';
   }
-});
+}
+
+// ============================================
+// REMATCH NOTIFICATIONS  [NEW]
+// ============================================
+
+/**
+ * listenForRematchInvite — subscribes to the OLD match doc and fires
+ * callback once when a rematch message is added to it.
+ * Used by the OPPONENT after they see the "wants a rematch" message.
+ */
+function listenForRematchInvite(oldMatchId, onRematch) {
+  let fired = false;
+  const unsub = listenToMatch(oldMatchId, (match) => {
+    if (fired) return;
+    const rematchMsg = (match.messages || []).find(m => m.type === 'rematch' && m.rematchCode);
+    if (rematchMsg) {
+      fired = true;
+      unsub();
+      onRematch({ code: rematchMsg.rematchCode, matchId: rematchMsg.rematchMatchId });
+    }
+  });
+  return unsub;
+}
 
 // ============================================
 // AVATAR MODAL
 // ============================================
-
 function openAvatarModal() {
   const profile = getUserProfile();
   _selectedAvatarId = getAvatarId(profile);
@@ -1513,25 +1451,19 @@ async function saveSelectedAvatar() {
   }
 }
 
-
 // ============================================
-// Issue 2 Fix — handleChallengeUser
-// Creates a match and opens the battle screen
-// when challenging a user from the leaderboard.
+// CHALLENGE USER FROM LEADERBOARD
 // ============================================
 async function handleChallengeUser(opponentUid, opponentName) {
   const user = getCurrentUser();
   if (!user) { openAuthModal(); return; }
-  if (opponentUid === user.uid) {
-    showToast("You can't challenge yourself!", 'error'); return;
-  }
+  if (opponentUid === user.uid) { showToast("You can't challenge yourself!", 'error'); return; }
 
   showToast(`⚔️ Creating battle with ${opponentName}…`, 'info', 2000);
 
   try {
     if (!_localQuestionsCache) _localQuestionsCache = await getLocalQuestions();
-    const { createChallenge: _createChallenge } = await import('./services/match.service.js');
-    const result = await _createChallenge(_localQuestionsCache);
+    const result = await createChallenge(_localQuestionsCache);
 
     _currentChallenge = { ...result, targetUid: opponentUid, targetName: opponentName };
 
@@ -1540,8 +1472,8 @@ async function handleChallengeUser(opponentUid, opponentName) {
     const createActions = document.getElementById('challenge-create-actions');
     const shareActions  = document.getElementById('challenge-share-actions');
 
-    if (codeDisplay) codeDisplay.textContent = result.code;
-    if (codeBox)     codeBox.classList.remove('hidden');
+    if (codeDisplay)   codeDisplay.textContent = result.code;
+    if (codeBox)       codeBox.classList.remove('hidden');
     if (createActions) createActions.classList.add('hidden');
     if (shareActions)  shareActions.classList.remove('hidden');
 
@@ -1551,7 +1483,6 @@ async function handleChallengeUser(opponentUid, opponentName) {
     if (waBtn) waBtn.onclick = () => window.open(waLink, '_blank');
 
     document.getElementById('challenge-create-modal')?.classList.remove('hidden');
-
     showToast(`Challenge code: ${result.code} — share it with ${opponentName}!`, 'success', 5000);
 
     if (_matchUnsubscribe) _matchUnsubscribe();
@@ -1563,7 +1494,6 @@ async function handleChallengeUser(opponentUid, opponentName) {
         setTimeout(() => startBattle(result.matchId, match.questions, match), 1200);
       }
     });
-
   } catch (err) {
     showToast(err.message || 'Failed to create challenge', 'error');
   }
@@ -1576,7 +1506,5 @@ window.SQ = {
   switchAuthTab, closeAuthModal, showConfirm, showScreen, showToast,
   openAvatarModal, closeAvatarModal, filterAvatars, selectAvatar, saveSelectedAvatar,
   closeChallengeModal, closeChallengeAcceptModal, acceptChallengeByCode, generateChallenge,
-  challengeUser(uid, name) {
-    handleChallengeUser(uid, name);
-  }
+  challengeUser(uid, name) { handleChallengeUser(uid, name); }
 };
