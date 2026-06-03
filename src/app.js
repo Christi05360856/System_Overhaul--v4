@@ -78,7 +78,8 @@ let _localQuestionsCache  = null; // cached for challenges
 // ============================================
 // SCREEN MANAGEMENT
 // ============================================
-const SCREENS = ['loading','landing','quiz','result','leaderboard','rewards','profile','settings','battle'];
+const SCREENS = ['loading','landing','quiz','result','leaderboard','rewards','profile','settings','battle','battle-result'];
+
 
 function showScreen(name) {
   SCREENS.forEach(id => {
@@ -87,7 +88,7 @@ function showScreen(name) {
   });
 
   const nav   = document.getElementById('bottom-nav');
-  const noNav = ['loading','quiz','result','battle'];
+  const noNav = ['loading','quiz','result','battle','battle-result'];
   if (nav) nav.classList.toggle('hidden', noNav.includes(name));
 
   document.querySelectorAll('.nav-item').forEach(btn => {
