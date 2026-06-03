@@ -1,8 +1,11 @@
 // ============================================
 // SCRIPTUREQUEST V4 — Match Service
 // Fixes:
-//   - sendRematch now creates a new match + returns it
+//   - sendRematch creates a new match + returns it
 //   - createRematch is a clean alias
+//   - submitBattleAnswers handles async quiz flow (Issue 3)
+//   - Race-condition guard on double completion
+//   - Rematch metadata stored on old match for reliable lookup
 // ============================================
 
 import { doc, collection, addDoc, getDoc, updateDoc,
@@ -77,7 +80,24 @@ export async function submitBattleAnswers(matchId, userAnswers) {
   const matchRef  = doc(db, 'matches', matchId);
   const matchSnap = await getDoc(matchRef);
   if (!matchSnap.exists()) throw new Error('Match not found.');
+
   const match     = matchSnap.data();
+
+  // FIX: Race-condition guard — if match already completed, return cached result
+  if (match.status === 'completed') {
+    const isCreator = match.creatorId === user.uid;
+    const myScore   = isCreator ? match.creatorScore : match.opponentScore;
+    const myPct     = isCreator ? match.creatorPct   : match.opponentPct;
+    return {
+      score: myScore ?? 0,
+      percentage: myPct ?? 0,
+      totalQuestions: (match.questions || []).length,
+      bothDone: true,
+      matchId,
+      alreadyCompleted: true
+    };
+  }
+
   const isCreator = match.creatorId === user.uid;
   const questions = match.questions || [];
 
@@ -89,6 +109,9 @@ export async function submitBattleAnswers(matchId, userAnswers) {
     ? { creatorAnswers: userAnswers, creatorScore: score, creatorPct: pct }
     : { opponentAnswers: userAnswers, opponentScore: score, opponentPct: pct };
 
+  // FIX (Issue 3): Check if OTHER player already submitted.
+  // The other player's score being non-null means they already finished.
+  // But also handle the case where status is already 'completed' (guarded above).
   const otherScore = isCreator ? match.opponentScore : match.creatorScore;
   const bothDone   = otherScore !== null && otherScore !== undefined;
 
@@ -159,6 +182,21 @@ export async function sendRematch(oldMatchId, questions) {
     createdAt: serverTimestamp(), expiresAt,
     rematchOf: oldMatchId,
     messages: [{ type:'rematch', text:`🔄 ${displayName} wants a rematch!`, timestamp: Date.now() }]
+  });
+
+  // FIX: Store rematch metadata on the OLD match so opponent can find it
+  const oldMessages = old.messages || [];
+  oldMessages.push({
+    type: 'rematch',
+    text: `🔄 ${displayName} started a rematch! Code: ${code}`,
+    rematchCode: code,
+    rematchMatchId: matchRef.id,
+    timestamp: Date.now()
+  });
+  await updateDoc(doc(db, 'matches', oldMatchId), {
+    rematchMatchId: matchRef.id,
+    rematchCode: code,
+    messages: oldMessages
   });
 
   return { matchId: matchRef.id, code, expiresAt: expiresAt.toMillis(), questions: shuffled };
