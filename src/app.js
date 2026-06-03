@@ -995,9 +995,10 @@ function closeChallengeAcceptModal() {
 
 async function acceptChallengeByCode() {
   const input = document.getElementById('challenge-code-input');
-  const code  = input?.value?.trim().toUpperCase();
+  const rawCode = input?.value?.trim() || '';
+  const code = rawCode.replace(/:\d+$/, '').toUpperCase();  // ← ADD THIS LINE
   if (!code) return showToast('Please enter a challenge code', 'error');
-
+  
   const btn = document.getElementById('accept-challenge-btn');
   btn.disabled    = true;
   btn.textContent = 'Accepting…';
@@ -1008,6 +1009,7 @@ async function acceptChallengeByCode() {
     }
 
     const { matchId, match } = await acceptChallenge(code);
+    
 
     closeChallengeAcceptModal();
     showToast(`Challenge accepted! Good luck! ⚔️`, 'success', 3000);
@@ -1259,11 +1261,7 @@ async function saveSelectedAvatar() {
   }
 }
 
-// ============================================
-// Issue 2 Fix — handleChallengeUser
-// Creates a match and opens the battle screen
-// when challenging a user from the leaderboard.
-// ============================================
+
 // ============================================
 // Issue 2 Fix — handleChallengeUser
 // Creates a match and opens the battle screen
