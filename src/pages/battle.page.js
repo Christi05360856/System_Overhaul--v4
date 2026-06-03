@@ -1,233 +1,238 @@
 // ============================================
-// BATTLE PAGE — Head-to-head quiz battle
-// Reuses quiz logic but with battle-specific UI
+// SCRIPTUREQUEST V4 — Battle Page
+// Fixes:
+//   - Timer uses BATTLE_DURATION_SECS (2:50)
+//   - Persists matchId to localStorage (Issue 4)
+//   - Robust cleanup / destroyBattleScreen
+//   - Waiting screen re-subscribes correctly
+//   - No correct answer revealed on wrong pick
 // ============================================
 
-import { submitBattleAnswers, listenToMatch } from '../services/match.service.js';
-import { getCurrentUser } from '../state/store.js';
-import { BATTLE_DURATION_SECS } from '../utils/constants.js';
+import { submitBattleAnswers, listenToMatch, getMatchResult } from '../services/match.service.js';
+import { getCurrentUser }      from '../state/store.js';
+import { mountAvatar }         from '../components/avatar.js';
+import { LETTERS, BATTLE_DURATION_SECS, PENDING_BATTLE_KEY } from '../utils/constants.js';
 
-
-let _currentQuestion = 0;
-let _answers = {};
+let _matchId   = null;
 let _questions = [];
-let _matchId = null;
-let _isCreator = false;
-let _timerInterval = null;
-let _timeLeft = BATTLE_DURATION_SECS; // 2:30 (150 seconds)
-let _onComplete = null;
+let _answers   = {};
+let _current   = 0;
+let _timeLeft  = BATTLE_DURATION_SECS;
+let _timer     = null;
 let _matchUnsub = null;
-let _submitting = false; // prevent double-submit
+let _submitting = false;
+let _callbacks  = {};
 
+const el = id => document.getElementById(id);
+
+// ============================================
+// INIT
+// ============================================
 
 export async function initBattleScreen(matchId, questions, match, callbacks) {
-  // FIX: Always clean up old battle state first
-  if (_timerInterval) { clearInterval(_timerInterval); _timerInterval = null; }
-  if (_matchUnsub) { _matchUnsub(); _matchUnsub = null; }
-  
-  _matchId = matchId;
-  _questions = questions || match.questions || [];
-  _answers = {};
-  _currentQuestion = 0;
-  _timeLeft = 360;
-  _onComplete = callbacks?.onComplete;
+  // Always destroy previous state first
+  destroyBattleScreen();
 
-  const user = getCurrentUser();
-  _isCreator = match.creatorId === user?.uid;
+  _matchId    = matchId;
+  _questions  = (questions || match?.questions || []).slice();
+  _answers    = {};
+  _current    = 0;
+  _timeLeft   = BATTLE_DURATION_SECS;
+  _submitting = false;
+  _callbacks  = callbacks || {};
 
-  // Set opponent name in UI
-  const oppName = _isCreator ? (match.opponentName || 'Opponent') : (match.creatorName || 'Opponent');
-  const myName = _isCreator ? (match.creatorName || 'You') : (match.opponentName || 'You');
-  
-  const myNameEl = document.getElementById('battle-my-name');
-  const oppNameEl = document.getElementById('battle-opponent-name');
-  if (myNameEl) myNameEl.textContent = myName;
-  if (oppNameEl) oppNameEl.textContent = oppName;
+  // Issue 4: Persist matchId so we can recover result after page close
+  try { localStorage.setItem(PENDING_BATTLE_KEY, matchId); } catch(e) {}
 
-  // Mount avatars if available
-  const myAvatar = _isCreator ? match.creatorAvatar : match.opponentAvatar;
-  const oppAvatar = _isCreator ? match.opponentAvatar : match.creatorAvatar;
-  
-  // Render avatars using the avatar component if available
-  try {
-    const { mountAvatar } = await import('../components/avatar.js');
-    if (myAvatar && document.getElementById('battle-my-avatar')) {
-      mountAvatar(myAvatar, document.getElementById('battle-my-avatar'));
-    }
-    if (oppAvatar && document.getElementById('battle-opponent-avatar')) {
-      mountAvatar(oppAvatar, document.getElementById('battle-opponent-avatar'));
-    }
-  } catch(e) {
-    // Avatars not critical, continue without
-  }
+  const user      = getCurrentUser();
+  const isCreator = match.creatorId === user?.uid;
+  const myName    = isCreator ? match.creatorName    : match.opponentName;
+  const oppName   = isCreator ? match.opponentName   : match.creatorName;
+  const myAvatar  = isCreator ? match.creatorAvatar  : match.opponentAvatar;
+  const oppAvatar = isCreator ? match.opponentAvatar : match.creatorAvatar;
 
-  // Start timer
-  startTimer();
+  if (el('battle-my-name'))         el('battle-my-name').textContent       = myName  || 'You';
+  if (el('battle-opponent-name'))   el('battle-opponent-name').textContent  = oppName || 'Opponent';
+  if (el('battle-my-avatar'))       mountAvatar(myAvatar  || 'M01', el('battle-my-avatar'));
+  if (el('battle-opponent-avatar')) mountAvatar(oppAvatar || 'M01', el('battle-opponent-avatar'));
 
-  // Listen for opponent progress (optional — can show "opponent answered Q3")
-  _matchUnsub = listenToMatch(matchId, (updatedMatch) => {
-    if (updatedMatch.status === 'completed') {
-      // Opponent finished, check if we should auto-submit
-      const myAnswersCount = Object.keys(_answers).length;
-      if (myAnswersCount < _questions.length) {
-        // Auto-submit with current answers
-        finishBattle();
-      }
-    }
-  });
-
-  // Wire nav buttons
-  document.getElementById('battle-prev-btn')?.addEventListener('click', prevQuestion);
-  document.getElementById('battle-next-btn')?.addEventListener('click', nextQuestion);
-  document.getElementById('battle-submit-btn')?.addEventListener('click', finishBattle);
+  // Wire buttons (clone to remove stale listeners)
+  _wire('battle-prev-btn',   prevQ);
+  _wire('battle-next-btn',   nextQ);
+  _wire('battle-submit-btn', () => _submit());
 
   renderQuestion();
-}
+  _startTimer();
 
-function startTimer() {
-  const timerEl = document.getElementById('battle-timer');
-  updateTimerDisplay();
-  
-  _timerInterval = setInterval(() => {
-    _timeLeft--;
-    updateTimerDisplay();
-    if (_timeLeft <= 0) {
-      clearInterval(_timerInterval);
-      finishBattle();
+  // Listen for opponent finishing first
+  _matchUnsub = listenToMatch(matchId, match => {
+    if (match.status === 'completed' && !_submitting) {
+      // Opponent finished while we were still answering — auto-submit
+      _submit(true);
     }
-  }, 1000);
+  });
 }
 
-function updateTimerDisplay() {
-  const timerEl = document.getElementById('battle-timer');
-  const mins = Math.floor(_timeLeft / 60);
-  const secs = _timeLeft % 60;
-  if (timerEl) {
-    timerEl.textContent = `${mins}:${String(secs).padStart(2, '0')}`;
-    if (_timeLeft <= 30) timerEl.classList.add('urgent');
-  }
+function _wire(id, fn) {
+  const orig = el(id);
+  if (!orig) return;
+  const clone = orig.cloneNode(true);
+  orig.parentNode.replaceChild(clone, orig);
+  clone.addEventListener('click', fn);
 }
+
+// ============================================
+// RENDER
+// ============================================
 
 function renderQuestion() {
-  const q = _questions[_currentQuestion];
+  const q        = _questions[_current];
   if (!q) return;
+  const answered = _answers[_current] !== undefined;
 
-  const chip = document.getElementById('battle-q-chip');
-  const text = document.getElementById('battle-q-text');
-  const options = document.getElementById('battle-options');
-  const progress = document.getElementById('battle-progress');
+  if (el('battle-q-chip'))    el('battle-q-chip').textContent    = `Question ${_current + 1} of ${_questions.length}`;
+  if (el('battle-q-text'))    el('battle-q-text').textContent    = q.question;
+  if (el('battle-progress'))  el('battle-progress').style.width  = `${((_current + 1) / _questions.length) * 100}%`;
+  if (el('battle-prog-fill')) el('battle-prog-fill').style.width = `${((_current + 1) / _questions.length) * 100}%`;
 
-  if (chip) chip.textContent = `Question ${_currentQuestion + 1} of ${_questions.length}`;
-  if (text) text.textContent = q.question;
-  if (progress) progress.style.width = `${((_currentQuestion + 1) / _questions.length) * 100}%`;
+  const optEl = el('battle-options');
+  if (optEl) {
+    optEl.innerHTML = q.options.map((opt, i) => {
+      let cls = 'option';
+      if (answered && _answers[_current] === i) {
+        cls += _answers[_current] === q.correctAnswer ? ' correct' : ' wrong';
+      } else if (answered) {
+        cls += ' disabled';
+      }
+      return `<button class="${cls}" data-index="${i}" ${answered ? 'disabled' : ''}>
+        <span class="option-letter">${LETTERS[i]}</span><span>${opt}</span>
+      </button>`;
+    }).join('');
 
-  if (!options) return;
-
-  options.innerHTML = '';
-  q.options.forEach((opt, idx) => {
-    const btn = document.createElement('button');
-    btn.className = 'option';
-    btn.innerHTML = `
-      <span class="option-letter">${String.fromCharCode(65 + idx)}</span>
-      <span>${opt}</span>
-    `;
-    if (_answers[_currentQuestion] === idx) {
-      btn.classList.add('selected');
-      btn.style.borderColor = 'var(--accent-primary)';
-      btn.style.background = 'var(--accent-warm-bg)';
+    if (!answered) {
+      optEl.querySelectorAll('.option').forEach(b =>
+        b.addEventListener('click', () => _selectAnswer(parseInt(b.dataset.index)))
+      );
     }
-    btn.addEventListener('click', () => selectAnswer(idx));
-    options.appendChild(btn);
+  }
+
+  _updateNav();
+}
+
+function _selectAnswer(idx) {
+  if (_submitting || _answers[_current] !== undefined) return;
+  _answers[_current] = idx;
+
+  // Only colour the chosen button — never reveal correct answer
+  const q = _questions[_current];
+  el('battle-options')?.querySelectorAll('.option').forEach((b, i) => {
+    b.disabled = true;
+    if (i === idx) b.classList.add(idx === q.correctAnswer ? 'correct' : 'wrong');
+    else           b.classList.add('disabled');
   });
 
-  // Update nav buttons
-  const prevBtn = document.getElementById('battle-prev-btn');
-  const nextBtn = document.getElementById('battle-next-btn');
-  const submitBtn = document.getElementById('battle-submit-btn');
-
-  if (prevBtn) prevBtn.disabled = _currentQuestion === 0;
-  
-  const isLast = _currentQuestion === _questions.length - 1;
-  if (nextBtn) {
-    nextBtn.classList.toggle('hidden', isLast);
-    nextBtn.innerHTML = isLast ? 'Submit <i class="fas fa-paper-plane"></i>' : 'Next <i class="fas fa-chevron-right"></i>';
-  }
-  if (submitBtn) submitBtn.classList.toggle('hidden', !isLast);
+  _updateNav();
 }
 
-function selectAnswer(idx) {
-  _answers[_currentQuestion] = idx;
-  renderQuestion();
+function _updateNav() {
+  const isLast      = _current === _questions.length - 1;
+  const allAnswered = Object.keys(_answers).length === _questions.length;
+  const answered    = _answers[_current] !== undefined;
+
+  if (el('battle-prev-btn'))   el('battle-prev-btn').disabled = _current === 0;
+  el('battle-next-btn')?.classList.toggle('hidden',   isLast);
+  el('battle-submit-btn')?.classList.toggle('hidden', !isLast && !allAnswered);
+  if (el('battle-next-btn') && !isLast) el('battle-next-btn').disabled = !answered;
 }
 
-function nextQuestion() {
-  if (_currentQuestion < _questions.length - 1) {
-    _currentQuestion++;
-    renderQuestion();
-  } else {
-    finishBattle();
-  }
+function nextQ() { if (_current < _questions.length - 1) { _current++; renderQuestion(); } }
+function prevQ() { if (_current > 0)                     { _current--; renderQuestion(); } }
+
+// ============================================
+// TIMER
+// ============================================
+
+function _startTimer() {
+  const t = el('battle-timer');
+  const tick = () => {
+    if (_timeLeft <= 0) { destroyBattleScreen(); _submit(true); return; }
+    const m = Math.floor(_timeLeft / 60), s = _timeLeft % 60;
+    if (t) { t.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; t.classList.toggle('urgent', _timeLeft <= 30); }
+    _timeLeft--;
+  };
+  tick();
+  _timer = setInterval(tick, 1000);
 }
 
-function prevQuestion() {
-  if (_currentQuestion > 0) {
-    _currentQuestion--;
-    renderQuestion();
-  }
-}
+// ============================================
+// SUBMIT
+// ============================================
 
-async function finishBattle() {
-  if (_submitting) return; // prevent double-submit
+async function _submit(autoSubmit = false) {
+  if (_submitting) return;
   _submitting = true;
-  
-  clearInterval(_timerInterval);
-  _timerInterval = null;
-  if (_matchUnsub) { _matchUnsub(); _matchUnsub = null; }
-  
 
-  const user = getCurrentUser();
-  const userAnswers = _questions.map((_, i) => _answers[i] !== undefined ? _answers[i] : null);
+  if (_timer) { clearInterval(_timer); _timer = null; }
+  if (_matchUnsub) { _matchUnsub(); _matchUnsub = null; }
+
+  const btn = el('battle-submit-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…'; }
+
+  // Fill unanswered with null
+  const answers = {};
+  _questions.forEach((_, i) => { answers[i] = _answers[i] !== undefined ? _answers[i] : null; });
 
   try {
-    const result = await submitBattleAnswers(_matchId, userAnswers);
-    
+    const result = await submitBattleAnswers(_matchId, answers);
+
     if (result.bothDone) {
-      // Both finished — show results
-      if (_onComplete) _onComplete(await import('../services/match.service.js').then(m => m.getMatchResult(_matchId)));
+      const match = await getMatchResult(_matchId);
+      try { localStorage.removeItem(PENDING_BATTLE_KEY); } catch(e) {}
+      _callbacks.onComplete?.(match);
     } else {
-      // Waiting for opponent
-      showWaitingScreen();
+      _showWaiting();
     }
-  } catch (err) {
+  } catch(err) {
     console.error('[Battle] Submit error:', err);
-    _submitting = false; // allow retry on error
-    showWaitingScreen();
+    _submitting = false;
+    _showWaiting(); // Show waiting anyway — don't hang on error
   }
 }
 
-function showWaitingScreen() {
-  const screen = document.getElementById('screen-battle');
+function _showWaiting() {
+  // Issue 4: matchId already in localStorage — user can close and come back
+  const screen = el('screen-battle');
   if (screen) {
     screen.innerHTML = `
-      <div style="max-width:480px;margin:0 auto;text-align:center;padding:40px 20px">
+      <div style="max-width:480px;margin:80px auto;text-align:center;padding:40px 20px">
         <div style="font-size:64px;margin-bottom:16px">⏳</div>
         <h2 style="font-size:22px;font-weight:900;color:var(--text-primary);margin-bottom:8px">Answers Submitted!</h2>
-        <p style="color:var(--text-muted);font-size:15px;margin-bottom:24px">Waiting for your opponent to finish…</p>
-        <div class="spinner" style="margin:0 auto 20px"></div>
-        <p style="font-size:13px;color:var(--text-muted)">You'll see results when both players are done.</p>
-      </div>
-    `;
+        <p style="color:var(--text-muted);font-size:15px;margin-bottom:8px">Waiting for your opponent to finish…</p>
+        <div class="spinner" style="margin:20px auto"></div>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:8px">
+          You can safely close this page.<br>We'll show results next time you open the app. 📱
+        </p>
+      </div>`;
   }
-  
-  // Continue listening for match completion
-  _matchUnsub = listenToMatch(_matchId, (match) => {
+
+  // Re-subscribe to catch completion
+  _matchUnsub = listenToMatch(_matchId, match => {
     if (match.status === 'completed') {
-      if (_onComplete) _onComplete(match);
+      try { localStorage.removeItem(PENDING_BATTLE_KEY); } catch(e) {}
+      if (_matchUnsub) { _matchUnsub(); _matchUnsub = null; }
+      _callbacks.onComplete?.(match);
     }
   });
 }
+
+// ============================================
+// DESTROY
+// ============================================
+
 export function destroyBattleScreen() {
-  if (_timerInterval) { clearInterval(_timerInterval); _timerInterval = null; }
-  if (_matchUnsub) { _matchUnsub(); _matchUnsub = null; }
+  if (_timer)     { clearInterval(_timer); _timer = null; }
+  if (_matchUnsub){ _matchUnsub(); _matchUnsub = null; }
   _submitting = false;
 }
+
+export default { initBattleScreen, destroyBattleScreen };
