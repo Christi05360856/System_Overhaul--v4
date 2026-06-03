@@ -730,6 +730,7 @@ function showConfirm({ icon='⚠️', title, message, onConfirm }) {
 // EVENT WIRING
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
+         document.getElementById('challenge-cancel-btn')?.addEventListener('click', cancelActiveChallenge);
            // Leaderboard: Join Challenge by code
   document.getElementById('lb-join-code-btn')?.addEventListener('click', async () => {
     const input = document.getElementById('lb-join-code-input');
@@ -857,10 +858,14 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // FIX: BATTLE icon goes to challenge lobby, not empty battle screen
       if (target === 'battle') {
-        showScreen('challenge');
+        if (_activeChallengeMatchId && _currentChallenge) {
+          // Already has active challenge, show modal again
+          openChallengeModal();
+        } else {
+          showScreen('challenge');
+        }
         return;
       }
-      
       showScreen(target);
     });
   });
