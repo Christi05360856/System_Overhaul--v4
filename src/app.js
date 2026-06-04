@@ -12,7 +12,7 @@
 //     openChallengeHub now renders a proper modal with:
 //       • Create challenge / generate code section (existing)
 //       • "Join by code" input (moved from leaderboard into hub)
-//       • Battle history list (last 10 matches via getUserMatches)
+//       • Battle history list (last 15 matches via getUserMatches)
 //     initChallengeScreen no longer imports challenge.page.js; it just
 //     calls openChallengeHub and returns to landing, avoiding the ugly
 //     old lobby screen entirely.
@@ -21,6 +21,13 @@
 //     _checkPendingBattleResult now handles status:'active' more robustly:
 //     it re-reads the doc once (in case the transaction closed it between
 //     the localStorage write and this read) before subscribing.
+//
+//   DIRECT CHALLENGE UPDATE:
+//     • Presence heartbeat starts on login, stops on logout
+//     • listenForIncomingChallenges wired into auth success callback
+//     • handleDirectChallenge / incoming/outgoing overlays added
+//     • initLeaderboardScreen updated with presence dots + challenge buttons
+//     • _loadBattleHistoryIntoHub updated to compact table format
 //
 //   Retained from v4 patch:
 //     • Race condition in handleBattleComplete fixed
@@ -63,22 +70,36 @@ import { createChallenge, getChallengeByCode, acceptChallenge,
 
 import { saveAvatar, getAvatarId, getAvatarLabel } from './services/avatar.service.js';
 
+import { startPresenceHeartbeat, stopPresenceHeartbeat,
+         subscribeToPresenceList, unsubscribePresenceList,
+         getPresenceDotHtml }                  from './services/presence.service.js';
+
+import { sendDirectChallenge, listenForIncomingChallenges,
+         stopIncomingChallengeListener, acceptDirectChallenge,
+         rejectDirectChallenge, listenForChallengeResponse,
+         stopOutgoingChallengeListener }        from './services/challenge.service.js';
+
 // ============================================
 // MODULE-LEVEL STATE
 // ============================================
 
-let _localQuestions         = null;
-let _quizPage               = null;
-let _activeLocalSession     = null;
-let _selectedAvatarId       = null;
-let _pendingChallengeCode   = null;
-let _currentChallenge       = null;
-let _localQuestionsCache    = null;
-let _activeChallengeMatchId = null;
-let _matchUnsubscribe       = null;
-let _lbCountdownTimer       = null;
-let _limitTimer             = null;
-let _appUrl                 = window.location.origin;
+let _localQuestions          = null;
+let _quizPage                = null;
+let _activeLocalSession      = null;
+let _selectedAvatarId        = null;
+let _pendingChallengeCode    = null;
+let _currentChallenge        = null;
+let _localQuestionsCache     = null;
+let _activeChallengeMatchId  = null;
+let _matchUnsubscribe        = null;
+let _lbCountdownTimer        = null;
+let _limitTimer              = null;
+let _appUrl                  = window.location.origin;
+
+// Direct challenge state
+let _incomingChallenge       = null; // { matchId, code, challengerId, challengerName, expiresAt }
+let _challengeTimerInterval  = null;
+let _outgoingChallengeId     = null;
 
 // ============================================
 // LAZY LOADERS
@@ -187,69 +208,78 @@ function openChallengeHub() {
   _loadBattleHistoryIntoHub(user.uid);
 }
 
-// Load and render the last 10 matches into #challenge-hub-history inside the modal.
-// Gracefully degrades if the element doesn't exist in older HTML.
+// ============================================
+// BATTLE HISTORY — COMPACT TABLE
+// Loads and renders the last 15 matches into
+// #challenge-hub-history inside the modal.
+// Gracefully degrades if element doesn't exist.
+// ============================================
+
 async function _loadBattleHistoryIntoHub(uid) {
   const container = document.getElementById('challenge-hub-history');
   if (!container) return;
 
-  container.innerHTML = `<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px 0">
-    <i class="fas fa-spinner fa-spin"></i> Loading battles…</p>`;
+  container.innerHTML = `<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:8px 0">
+    <i class="fas fa-spinner fa-spin"></i></p>`;
 
   try {
     const matches = await getUserMatches(uid);
+
     if (!matches.length) {
       container.innerHTML = `<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px 0">
-        No battles yet — create one above! ⚔️</p>`;
+        No battles yet — challenge someone! ⚔️</p>`;
       return;
     }
 
-    const recent = matches.slice(0, 10);
-    container.innerHTML = recent.map(m => {
+    const recent = matches.slice(0, 15);
+    const rows   = recent.map(m => {
       const isCreator = m.creatorId === uid;
-      const myPct     = isCreator ? m.creatorPct   : m.opponentPct;
-      const oppPct    = isCreator ? m.opponentPct  : m.creatorPct;
-      const oppName   = isCreator ? m.opponentName : m.creatorName;
-      const iWon      = m.winnerId === uid;
-      const isDraw    = m.winnerId === 'draw';
-      const isWaiting = m.status === 'waiting';
-      const isActive  = m.status === 'active';
+      const oppName   = (isCreator ? m.opponentName : m.creatorName) || 'Opponent';
+      const myPct     = isCreator ? m.creatorPct  : m.opponentPct;
+      const oppPct    = isCreator ? m.opponentPct : m.creatorPct;
 
-      const statusIcon  = isWaiting ? '⏳' : isActive ? '⚔️' : iWon ? '🏆' : isDraw ? '🤝' : '😔';
-      const statusLabel = isWaiting ? 'Waiting for opponent'
-                        : isActive  ? 'In progress'
-                        : iWon      ? 'You won!'
-                        : isDraw    ? 'Draw'
-                        : 'You lost';
-      const statusColor = isWaiting || isActive ? 'var(--text-muted)'
-                        : iWon ? 'var(--success, #22c55e)'
-                        : isDraw ? 'var(--warning, #f59e0b)'
-                        : 'var(--danger, #ef4444)';
+      let resultChip = '';
+      if (m.status === 'completed') {
+        const iWon   = m.winnerId === uid;
+        const isDraw = m.winnerId === 'draw';
+        if (isDraw)       resultChip = `<span class="bh-result-chip draw">🤝 Draw</span>`;
+        else if (iWon)    resultChip = `<span class="bh-result-chip won">🏆 Won</span>`;
+        else              resultChip = `<span class="bh-result-chip lost">😔 Lost</span>`;
+      } else if (m.status === 'pending' || m.status === 'waiting') {
+        resultChip = `<span class="bh-result-chip pending">⏳ Pending</span>`;
+      } else if (m.status === 'active') {
+        resultChip = `<span class="bh-result-chip pending">⚔️ Active</span>`;
+      } else {
+        resultChip = `<span class="bh-result-chip pending">—</span>`;
+      }
 
-      const scoreStr = (m.status === 'completed' && myPct !== null)
-        ? `${myPct ?? '—'}% vs ${oppPct ?? '—'}%`
-        : m.code || '—';
+      const score = (m.status === 'completed' && myPct !== null)
+        ? `${myPct}% / ${oppPct ?? '?'}%`
+        : '—';
 
-      const date = m.createdAt?.toDate
-        ? m.createdAt.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short' })
-        : '';
-
-      return `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
-          <span style="font-size:22px">${statusIcon}</span>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-              vs ${oppName || 'Opponent'}
-            </div>
-            <div style="font-size:12px;color:${statusColor};font-weight:600">${statusLabel}</div>
-            <div style="font-size:11px;color:var(--text-muted)">${scoreStr}${date ? ' · ' + date : ''}</div>
-          </div>
-        </div>`;
+      return `<tr>
+        <td>vs ${oppName}</td>
+        <td style="text-align:center">${score}</td>
+        <td style="text-align:right">${resultChip}</td>
+      </tr>`;
     }).join('');
+
+    container.innerHTML = `
+      <table class="battle-history-table">
+        <thead>
+          <tr>
+            <th>Opponent</th>
+            <th style="text-align:center">Score</th>
+            <th style="text-align:right">Result</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
   } catch (e) {
-    container.innerHTML = `<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px 0">
-      Couldn't load battle history.</p>`;
-    console.warn('[Hub] Battle history load failed:', e.message);
+    container.innerHTML = `<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:8px 0">
+      Couldn't load history.</p>`;
+    console.warn('[Hub] History load failed:', e.message);
   }
 }
 
@@ -275,6 +305,12 @@ initAuthListener(
     checkNewWeek();
     checkAndShowAnnouncements().catch(e => console.warn('[Announce]', e.message));
 
+    // Start presence heartbeat so this user appears online
+    startPresenceHeartbeat();
+
+    // Listen for incoming direct challenges from other users
+    listenForIncomingChallenges(user.uid, showIncomingChallengeModal);
+
     _checkPendingBattleResult(user).catch(e => console.warn('[PendingBattle]', e.message));
 
     const code = getChallengeCodeFromURL();
@@ -293,6 +329,11 @@ initAuthListener(
     initTheme(null);
     // FAB always hidden when logged out
     setBattleFabVisible(false);
+
+    // Stop presence and all challenge listeners on logout
+    stopPresenceHeartbeat();
+    stopIncomingChallengeListener();
+    stopOutgoingChallengeListener();
 
     const code = getChallengeCodeFromURL();
     if (code) {
@@ -469,6 +510,7 @@ async function _checkPendingBattleResult(user) {
 
 // ============================================
 // LEADERBOARD SCREEN
+// Updated with presence dots + challenge buttons
 // ============================================
 
 async function initLeaderboardScreen() {
@@ -486,13 +528,106 @@ async function initLeaderboardScreen() {
   document.getElementById('lb-entries')?.classList.add('hidden');
 
   const currentUserId = getCurrentUser()?.uid;
+
   subscribeLeaderboard(entries => {
     document.getElementById('lb-skeleton')?.classList.add('hidden');
     document.getElementById('lb-entries')?.classList.remove('hidden');
-    renderLeaderboardRows(entries, document.getElementById('lb-entries'), currentUserId);
+
+    // Render rows with data-lb-uid, presence dot slots, and challenge buttons
+    renderLeaderboardRowsWithChallenge(
+      entries,
+      document.getElementById('lb-entries'),
+      currentUserId
+    );
     renderUserRank(entries, document.getElementById('lb-my-rank'), currentUserId);
+
     const count = document.getElementById('lb-entry-count');
     if (count) count.textContent = `${entries.length} competitor${entries.length !== 1 ? 's' : ''} this week`;
+
+    // Subscribe to presence for all UIDs in the leaderboard
+    const uids = entries.map(e => e.uid || e.userId).filter(Boolean);
+    unsubscribePresenceList();
+    subscribeToPresenceList(uids, presenceMap => {
+      _patchLeaderboardRowsWithPresence(entries, presenceMap);
+    });
+  });
+}
+
+// Renders leaderboard rows with presence dot slot and direct challenge button
+function renderLeaderboardRowsWithChallenge(entries, container, currentUserId) {
+  if (!container) return;
+
+  if (!entries || entries.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size:48px;margin-bottom:12px">📖</div>
+        <p>No scores yet this week.</p>
+        <p style="margin-top:4px;font-size:13px">Be the first to take the quiz!</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = entries.slice(0, 20).map((entry, i) => {
+    const rank   = i + 1;
+    const uid    = entry.uid || entry.userId;
+    const isSelf = uid === currentUserId;
+    const medal  = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+    const prizeHTML  = rank <= 3
+      ? `<span class="badge badge-reward" style="font-size:10px;padding:2px 8px">🏆 Prize</span>`
+      : '';
+    const streakHTML = entry.streak
+      ? `<span style="font-size:12px;color:var(--accent-warm);font-weight:700">🔥${entry.streak}</span>`
+      : '';
+    const safeName = (entry.displayName || 'Anonymous').replace(/'/g, "\\'");
+
+    return `
+      <div class="lb-row ${isSelf ? 'lb-row--me' : ''}" data-lb-uid="${uid}" data-rank="${rank}">
+        <div class="lb-rank">${medal}</div>
+        <div class="lb-name">
+          <span>${escapeHTML(entry.displayName || entry.name || 'Anonymous')}</span>
+          ${prizeHTML}
+          ${streakHTML}
+          <span class="lb-presence-slot"></span>
+        </div>
+        <div class="lb-points">${(entry.points || entry.weeklyPoints || 0).toLocaleString()} <span class="lb-pts-label">pts</span></div>
+        ${!isSelf
+          ? `<button class="lb-challenge-btn" disabled
+               onclick="window.SQ&&SQ.directChallenge&&SQ.directChallenge('${uid}','${safeName}')">⚔️</button>`
+          : '<div style="width:36px"></div>'
+        }
+      </div>`;
+  }).join('');
+
+  container.querySelectorAll('.lb-row').forEach((row, i) => {
+    row.style.animationDelay = `${i * 40}ms`;
+    row.classList.add('lb-row--animate');
+  });
+}
+
+// Patches already-rendered leaderboard rows with live presence data
+function _patchLeaderboardRowsWithPresence(entries, presenceMap) {
+  entries.forEach(entry => {
+    const uid = entry.uid || entry.userId;
+    const row = document.querySelector(`[data-lb-uid="${uid}"]`);
+    if (!row) return;
+
+    // Update presence dot
+    const dotSlot = row.querySelector('.lb-presence-slot');
+    if (dotSlot) {
+      const isOnline = presenceMap[uid] || false;
+      dotSlot.innerHTML = getPresenceDotHtml(isOnline);
+    }
+
+    // Enable/disable challenge button based on online status
+    const challengeBtn = row.querySelector('.lb-challenge-btn');
+    if (challengeBtn) {
+      const isOnline = presenceMap[uid] || false;
+      const isSelf   = uid === getCurrentUser()?.uid;
+      challengeBtn.disabled = !isOnline || isSelf;
+      challengeBtn.title    = isSelf    ? "That's you!"
+                            : isOnline  ? `Challenge ${entry.displayName || 'Opponent'}`
+                            : `${entry.displayName || 'Opponent'} is offline`;
+    }
   });
 }
 
@@ -897,6 +1032,121 @@ function showConfirm({ icon='⚠️', title, message, onConfirm }) {
 }
 
 // ============================================
+// INCOMING CHALLENGE MODAL
+// Shows full-screen overlay when someone
+// directly challenges this user
+// ============================================
+
+function showIncomingChallengeModal(challenge) {
+  _incomingChallenge = challenge;
+
+  const overlay = document.getElementById('incoming-challenge-overlay');
+  const nameEl  = document.getElementById('incoming-challenger-name');
+  const timerEl = document.getElementById('incoming-challenge-timer');
+
+  if (!overlay) return;
+
+  if (nameEl) nameEl.textContent = challenge.challengerName || 'Someone';
+
+  // Countdown timer showing how long they have to respond
+  if (_challengeTimerInterval) clearInterval(_challengeTimerInterval);
+  function updateTimer() {
+    const remaining = Math.max(0, Math.floor((challenge.expiresAt - Date.now()) / 1000));
+    if (timerEl) {
+      timerEl.textContent = remaining > 0
+        ? `⏰ ${remaining}s to respond`
+        : '⏰ Challenge expired';
+    }
+    if (remaining <= 0) {
+      clearInterval(_challengeTimerInterval);
+      closeIncomingChallengeModal();
+    }
+  }
+  updateTimer();
+  _challengeTimerInterval = setInterval(updateTimer, 1000);
+
+  overlay.classList.remove('hidden');
+}
+
+function closeIncomingChallengeModal() {
+  if (_challengeTimerInterval) { clearInterval(_challengeTimerInterval); _challengeTimerInterval = null; }
+  document.getElementById('incoming-challenge-overlay')?.classList.add('hidden');
+  _incomingChallenge = null;
+}
+
+// ============================================
+// DIRECT CHALLENGE FROM LEADERBOARD
+// Called when user taps ⚔️ on a leaderboard row.
+// Uses the real-time direct challenge flow
+// (presence.service + challenge.service),
+// separate from the WhatsApp code flow.
+// ============================================
+
+async function handleDirectChallenge(targetUid, targetName) {
+  const user = getCurrentUser();
+  if (!user) { openAuthModal(); return; }
+  if (targetUid === user.uid) { showToast("You can't challenge yourself!", 'error'); return; }
+
+  if (!_localQuestionsCache) _localQuestionsCache = await getLocalQuestions();
+  if (!_localQuestionsCache.length) {
+    showToast('No questions available. Try again shortly.', 'error');
+    return;
+  }
+
+  // Show pending overlay immediately
+  _showChallengePendingOverlay(targetName);
+
+  try {
+    const result = await sendDirectChallenge(targetUid, targetName, _localQuestionsCache);
+    _outgoingChallengeId = result.matchId;
+
+    // Update pending overlay copy
+    const pendingName = document.getElementById('challenge-pending-name');
+    if (pendingName) pendingName.textContent = `Waiting for ${targetName} to respond…`;
+
+    // Listen for acceptance or rejection
+    listenForChallengeResponse(result.matchId, {
+      onAccepted: (match) => {
+        _hideChallengePendingOverlay();
+        showToast(`${targetName} accepted! Starting battle… ⚔️`, 'success', 3000);
+        setTimeout(() => startBattle(result.matchId, match.questions, match), 1000);
+      },
+      onRejected: () => {
+        _hideChallengePendingOverlay();
+        showToast(`${targetName} declined your challenge.`, 'info', 4000);
+        _outgoingChallengeId = null;
+      }
+    });
+
+    // Auto-expire after 5 minutes if no response
+    setTimeout(() => {
+      if (_outgoingChallengeId === result.matchId) {
+        _hideChallengePendingOverlay();
+        stopOutgoingChallengeListener();
+        showToast(`${targetName} didn't respond in time. Challenge expired.`, 'info', 4000);
+        _outgoingChallengeId = null;
+      }
+    }, 5 * 60 * 1000);
+
+  } catch (err) {
+    _hideChallengePendingOverlay();
+    showToast(err.message || 'Failed to send challenge', 'error');
+  }
+}
+
+function _showChallengePendingOverlay(targetName) {
+  const overlay = document.getElementById('challenge-pending-overlay');
+  const nameEl  = document.getElementById('challenge-pending-name');
+  if (nameEl)   nameEl.textContent = `Challenge sent to ${targetName}…`;
+  overlay?.classList.remove('hidden');
+}
+
+function _hideChallengePendingOverlay() {
+  document.getElementById('challenge-pending-overlay')?.classList.add('hidden');
+  _outgoingChallengeId = null;
+}
+
+// ============================================
 // EVENT WIRING
 // ============================================
 
@@ -954,6 +1204,48 @@ document.addEventListener('DOMContentLoaded', () => {
   // Wire both the leaderboard join and the hub modal join (if present in HTML)
   _handleJoinByCode('lb-join-code-input',  'lb-join-code-btn');
   _handleJoinByCode('hub-join-code-input', 'hub-join-code-btn');
+
+  // ── Incoming direct challenge: accept ──
+  document.getElementById('incoming-accept-btn')?.addEventListener('click', async () => {
+    if (!_incomingChallenge) return;
+    const btn = document.getElementById('incoming-accept-btn');
+    btn.disabled    = true;
+    btn.textContent = 'Accepting…';
+    try {
+      const { matchId, questions, match } = await acceptDirectChallenge(_incomingChallenge.matchId);
+      closeIncomingChallengeModal();
+      showToast('Challenge accepted! Starting battle… ⚔️', 'success', 2000);
+      await startBattle(matchId, questions, match);
+    } catch (err) {
+      showToast(err.message || 'Failed to accept challenge', 'error');
+      btn.disabled    = false;
+      btn.textContent = '⚔️ Accept Challenge!';
+    }
+  });
+
+  // ── Incoming direct challenge: reject ──
+  document.getElementById('incoming-reject-btn')?.addEventListener('click', async () => {
+    if (!_incomingChallenge) return;
+    const user = getCurrentUser();
+    await rejectDirectChallenge(_incomingChallenge.matchId, user.uid);
+    closeIncomingChallengeModal();
+    showToast('Challenge declined.', 'info', 2000);
+  });
+
+  // ── Outgoing direct challenge: cancel ──
+  document.getElementById('challenge-pending-cancel')?.addEventListener('click', () => {
+    _hideChallengePendingOverlay();
+    stopOutgoingChallengeListener();
+    if (_outgoingChallengeId) {
+      import('firebase/firestore').then(({ doc, updateDoc }) => {
+        import('./firebase/config.js').then(({ db }) => {
+          updateDoc(doc(db, 'matches', _outgoingChallengeId), { status: 'cancelled' }).catch(() => {});
+        });
+      });
+      _outgoingChallengeId = null;
+    }
+    showToast('Challenge cancelled.', 'info');
+  });
 
   // ── Auth modal ──
   document.getElementById('open-auth-btn')?.addEventListener('click', openAuthModal);
@@ -1027,6 +1319,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!['landing','settings'].includes(target) && !getCurrentUser()) { openAuthModal(); return; }
       if (getState('nav')?.current === 'leaderboard' && target !== 'leaderboard') {
         unsubscribeLeaderboard();
+        unsubscribePresenceList();
         if (_lbCountdownTimer) clearInterval(_lbCountdownTimer);
       }
       // 'battle' nav tap opens challenge hub modal, not the legacy screen-challenge
@@ -1113,10 +1406,10 @@ document.addEventListener('DOMContentLoaded', () => {
       onConfirm: async () => { await logout(); showScreen('landing'); }
     });
   });
-         
- document.getElementById('whatsapp-contact-btn')?.addEventListener('click', () => {
+
+  document.getElementById('whatsapp-contact-btn')?.addEventListener('click', () => {
     window.open('https://wa.me/+2349167055488?text=Hi%20Admin%F0%9F%91%8B%2C%20I%20need%20Help%20With%20Scripture%20Quest', '_blank');
-});
+  });
 
   document.getElementById('levelup-close-btn')?.addEventListener('click', () => {
     document.getElementById('levelup-modal')?.classList.add('hidden');
@@ -1255,7 +1548,7 @@ function initChallengeScreen() {
 }
 
 // ============================================
-// CHALLENGE USER FROM LEADERBOARD
+// CHALLENGE USER FROM LEADERBOARD (WhatsApp code flow)
 // ============================================
 
 async function handleChallengeUser(opponentUid, opponentName) {
@@ -1547,6 +1840,18 @@ async function saveSelectedAvatar() {
 }
 
 // ============================================
+// UTILITIES
+// ============================================
+
+function escapeHTML(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ============================================
 // GLOBAL SQ NAMESPACE
 // ============================================
 
@@ -1566,5 +1871,7 @@ window.SQ = {
   acceptChallengeByCode,
   generateChallenge,
   openChallengeHub,
-  challengeUser: (uid, name) => handleChallengeUser(uid, name)
+  challengeUser:             (uid, name) => handleChallengeUser(uid, name),
+  directChallenge:           (uid, name) => handleDirectChallenge(uid, name),
+  closeIncomingChallengeModal
 };
