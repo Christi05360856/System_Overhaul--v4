@@ -102,8 +102,7 @@
       <p class="card-footer">ScriptureQuest v4 • Bible Quiz Platform</p>
     </div>
   </div>
-
-  <!-- ══ SCREEN: QUIZ ══ -->
+    <!-- ══ SCREEN: QUIZ ══ -->
   <div id="screen-quiz" class="screen hidden">
     <div class="quiz-wrapper">
       <div class="top-bar">
@@ -198,25 +197,24 @@
       <p id="result-attempts-msg" style="text-align:center;margin-top:12px;font-size:13px;color:var(--text-muted);font-weight:600"></p>
     </div>
   </div>
-
   <!-- ══ SCREEN: LEADERBOARD ══ -->
   <div id="screen-leaderboard" class="screen hidden">
     <div class="card" style="max-width:720px;margin:0 auto">
       <div class="leaderboard-intro">
-              <!-- Join Challenge Box -->
-      <div style="margin:16px 0;padding:16px;background:var(--accent-warm-bg);border:2px solid var(--accent-primary);border-radius:var(--radius-lg);text-align:center">
-        <p style="font-weight:800;color:var(--accent-primary);font-size:15px;margin-bottom:8px">⚔️ Have a Challenge Code?</p>
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Enter a friend's code to join their battle instantly!</p>
-        <div style="display:flex;gap:8px;max-width:400px;margin:0 auto">
-          <input type="text" id="lb-join-code-input" 
-                 placeholder="SQ-XXXX" 
-                 style="flex:1;padding:12px 16px;border:2px solid var(--border);border-radius:var(--radius-md);font-size:16px;font-weight:800;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:var(--font-body)"
-                 maxlength="7" />
-          <button id="lb-join-code-btn" class="btn-primary" style="padding:12px 20px;font-size:14px">
-            <i class="fas fa-fist-raised"></i> Join
-          </button>
+        <!-- Join Challenge Box -->
+        <div style="margin:16px 0;padding:16px;background:var(--accent-warm-bg);border:2px solid var(--accent-primary);border-radius:var(--radius-lg);text-align:center">
+          <p style="font-weight:800;color:var(--accent-primary);font-size:15px;margin-bottom:8px">⚔️ Have a Challenge Code?</p>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Enter a friend's code to join their battle instantly!</p>
+          <div style="display:flex;gap:8px;max-width:400px;margin:0 auto">
+            <input type="text" id="lb-join-code-input"
+                   placeholder="SQ-XXXX"
+                   style="flex:1;padding:12px 16px;border:2px solid var(--border);border-radius:var(--radius-md);font-size:16px;font-weight:800;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:var(--font-body)"
+                   maxlength="7" />
+            <button id="lb-join-code-btn" class="btn-primary" style="padding:12px 20px;font-size:14px">
+              <i class="fas fa-fist-raised"></i> Join
+            </button>
+          </div>
         </div>
-      </div>
         <h2 style="font-size:24px;font-weight:900;color:var(--text-primary);margin-bottom:6px">🏆 Weekly Leaderboard</h2>
         <p>Week <span id="lb-week-number">—</span> Competition</p>
         <p class="leaderboard-motivation">Top 3 win data rewards at week end!</p>
@@ -346,9 +344,8 @@
           <p style="font-size:11px;color:var(--text-muted);margin-top:6px;font-weight:600">
             Level <span id="p-lvl-next">2</span> at <span id="p-xp-needed-2">100</span> XP
           </p>
-        </div>
-
-        <!-- Contact Details — EDIT (shown when not yet complete) -->
+  </div>
+          <!-- Contact Details — EDIT (shown when not yet complete) -->
         <div class="contact-section" id="contact-edit-section">
           <h4><i class="fas fa-phone"></i> Contact Details
             <span class="contact-required" id="contact-required-note">— Required for reward eligibility</span>
@@ -387,7 +384,6 @@
 
       <!-- TAB: Achievements -->
       <div id="profile-tab-achievements" class="hidden">
-
         <div class="badges-section-header">
           <div class="badges-section-title">🏅 Your Badge Collection</div>
           <span class="badges-earned-count" id="badges-earned-count">0 / 16 earned</span>
@@ -425,7 +421,6 @@
 
     </div>
   </div>
-
   <!-- ══ SCREEN: SETTINGS ══ -->
   <div id="screen-settings" class="screen hidden">
     <div style="max-width:720px;margin:0 auto">
@@ -513,8 +508,7 @@
 
     </div>
   </div>
-
-  <!-- ══ BOTTOM NAV — Battle item removed; FAB handles battle access ══ -->
+  <!-- ══ BOTTOM NAV ══ -->
   <nav id="bottom-nav" class="bottom-nav hidden" aria-label="Main navigation">
     <button class="nav-item active" data-screen="landing"     aria-label="Home"><i class="fas fa-home"></i><span>Home</span></button>
     <button class="nav-item"        data-screen="leaderboard" aria-label="Leaderboard"><i class="fas fa-trophy"></i><span>Ranks</span></button>
@@ -611,114 +605,8 @@
         <button id="battle-submit-btn" class="btn-primary hidden"><i class="fas fa-paper-plane"></i> Submit</button>
       </div>
     </div>
-  </div>
-
-  <!-- ══ MODAL: CREATE CHALLENGE ══ -->
-  <div id="challenge-create-modal" class="modal hidden" role="dialog">
-    <div class="modal-content" style="max-width:440px">
-      <div style="font-size:44px;margin-bottom:12px">⚔️</div>
-      <h3 style="margin-bottom:6px">Challenge Someone!</h3>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">
-        A challenge link will be generated. Share it on WhatsApp — they have 2 hours to accept!
-      </p>
-
-      <div id="challenge-code-box" class="hidden" style="background:var(--bg-subtle);border:2px dashed var(--accent-primary);border-radius:var(--radius-lg);padding:20px;text-align:center;margin-bottom:16px">
-        <p style="font-size:12px;color:var(--text-muted);font-weight:700;margin-bottom:6px">CHALLENGE CODE</p>
-        <div id="challenge-code-display" style="font-size:32px;font-weight:900;color:var(--accent-primary);letter-spacing:4px"></div>
-        <p style="font-size:11px;color:var(--text-muted);margin-top:8px;font-weight:600">Expires in 2 hours</p>
-      </div>
-
-      <div id="challenge-create-actions">
-        <button class="btn-primary btn-full" id="generate-challenge-btn" onclick="SQ.generateChallenge()">
-          <i class="fas fa-bolt"></i> Generate Challenge Link
-        </button>
-      </div>
-
-      <div id="challenge-share-actions">
-  <!-- existing WhatsApp button -->
-  <button id="whatsapp-share-btn" class="btn btn-whatsapp">
-    <i class="fab fa-whatsapp"></i> Share on WhatsApp
-  </button>
-  
-  <!-- ADD THIS CANCEL BUTTON -->
-  <button id="challenge-cancel-btn" class="btn btn-secondary">
-    <i class="fas fa-times"></i> Cancel Challenge
-  </button>
-      </div>
-      
-
-  <!-- ══ MODAL: ACCEPT CHALLENGE ══ -->
-  <div id="challenge-accept-modal" class="modal hidden" role="dialog">
-    <div class="modal-content" style="max-width:440px">
-      <div style="font-size:44px;margin-bottom:12px">⚔️</div>
-      <h3 id="accept-challenge-title" style="margin-bottom:6px">Bible Quiz Challenge!</h3>
-      <p id="accept-challenge-sub" style="font-size:14px;color:var(--text-secondary);margin-bottom:20px">
-        Someone challenged you to a Bible quiz battle!
-      </p>
-
-      <div style="background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;margin-bottom:20px;font-size:13px;color:var(--text-muted)">
-        <p>⏱️ 15 questions, 6 minutes</p>
-        <p style="margin-top:6px">🏆 Winner gets +50 XP</p>
-        <p style="margin-top:6px">💪 Participants get +15 XP</p>
-      </div>
-
-      <div style="margin-bottom:16px">
-        <input type="text" id="challenge-code-input"
-               placeholder="Enter challenge code (e.g. SQ-AB12)"
-               class="form-control" style="text-align:center;font-size:18px;font-weight:800;letter-spacing:3px;text-transform:uppercase" />
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <button class="btn-primary btn-full" id="accept-challenge-btn" onclick="SQ.acceptChallengeByCode()">
-          <i class="fas fa-fist-raised"></i> Accept Challenge!
-        </button>
-        <button class="btn-secondary btn-full" onclick="SQ.closeChallengeAcceptModal()">Maybe Later</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ SCREEN: CHALLENGE LOBBY ══ -->
-  <div id="screen-challenge" class="screen center hidden">
-    <div class="card" style="max-width:480px;text-align:center">
-      <div style="font-size:52px;margin-bottom:12px">⚔️</div>
-      <h2 style="font-size:22px;font-weight:900;color:var(--text-primary);margin-bottom:6px" id="challenge-title">Challenge a Friend!</h2>
-      <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px" id="challenge-sub">Share via WhatsApp and wait for them to accept</p>
-
-      <!-- Create challenge -->
-      <div id="challenge-create-section">
-        <div style="background:var(--bg-subtle);border:2px dashed var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px">
-          <div style="font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Your Challenge Code</div>
-          <div id="challenge-code" style="font-size:36px;font-weight:900;color:var(--accent-primary);letter-spacing:4px;font-variant-numeric:tabular-nums">—</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:6px;font-weight:600">⏰ Expires in 2 hours</div>
-        </div>
-        <button id="challenge-whatsapp-btn" class="btn-full" style="background:#25D366;color:white;border:none;padding:16px;border-radius:var(--radius-md);font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px">
-          💬 Share on WhatsApp
-        </button>
-        <button id="challenge-new-btn" class="btn-secondary btn-full btn-sm">Generate New Code</button>
-      </div>
-
-      <!-- Accept challenge (from URL) -->
-      <div id="challenge-accept-section" class="hidden">
-        <div style="padding:16px;background:var(--info-bg);border:1px solid var(--info-border);border-radius:var(--radius-lg);margin-bottom:16px">
-          <p style="font-weight:800;color:var(--info-text);font-size:15px" id="challenge-from-name">Someone challenged you!</p>
-          <p style="color:var(--info-text);font-size:13px;margin-top:4px">Are you ready to battle?</p>
-        </div>
-        <button id="challenge-accept-btn" class="btn-primary btn-full btn-lg">⚔️ Accept Challenge</button>
-        <button id="challenge-decline-btn" class="btn-ghost btn-full btn-sm" style="margin-top:8px;color:var(--text-muted)">Decline</button>
-      </div>
-
-      <!-- Waiting for opponent -->
-      <div id="challenge-waiting-section" class="hidden">
-        <div class="spinner" style="margin:20px auto"></div>
-        <p style="color:var(--text-muted);font-weight:600;margin-top:12px">Waiting for opponent to finish…</p>
-        <p style="color:var(--text-muted);font-size:12px;margin-top:6px">You'll see results when they're done</p>
-      </div>
-
-      <button onclick="SQ.showScreen('landing')" class="btn-ghost btn-sm" style="margin-top:16px;color:var(--text-muted)">← Back to Home</button>
-    </div>
-  </div>
-
-  <!-- ══ SCREEN: BATTLE RESULT ══ -->
+            </div>
+    <!-- ══ SCREEN: BATTLE RESULT ══ -->
   <div id="screen-battle-result" class="screen center hidden">
     <div class="card" style="max-width:520px;text-align:center">
       <div style="font-size:52px;margin-bottom:8px" id="battle-result-icon">🏆</div>
@@ -750,8 +638,100 @@
 
       <div style="display:flex;flex-direction:column;gap:10px">
         <button id="battle-rematch-btn" class="btn-primary btn-full">🔄 Request Rematch</button>
-        <button onclick="SQ.showScreen('leaderboard')" class="btn-secondary btn-full">🏆 View Leaderboard</button>
-        <button onclick="SQ.showScreen('landing')" class="btn-ghost btn-full btn-sm" style="color:var(--text-muted)">← Home</button>
+        <button id="battle-result-back-btn" class="btn-ghost btn-full btn-sm" style="color:var(--text-muted)">← Home</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN: CHALLENGE LOBBY (legacy — kept for DOM completeness, never shown) ══ -->
+  <div id="screen-challenge" class="screen center hidden">
+    <div class="card" style="max-width:480px;text-align:center">
+      <p style="color:var(--text-muted)">Opening battle hub…</p>
+    </div>
+  </div>
+
+  <!-- ══ MODAL: CREATE CHALLENGE ══ -->
+  <!-- FIX: This modal is now a standalone top-level element with correct closing tags. -->
+  <!-- Previously it was missing its closing </div></div> which swallowed every element -->
+  <!-- below it (accept modal, battle-result screen, avatar modal, FAB) into its DOM   -->
+  <!-- subtree — making them invisible whenever the modal was hidden.                   -->
+  <div id="challenge-create-modal" class="modal hidden" role="dialog">
+    <div class="modal-content" style="max-width:440px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:44px">⚔️</div>
+        <button id="challenge-modal-close-btn" class="btn-ghost btn-sm"
+                style="font-size:22px;color:var(--text-muted);line-height:1;padding:4px 8px"
+                onclick="SQ.closeChallengeModal()">×</button>
+      </div>
+
+      <h3 style="margin-bottom:6px">Challenge Someone!</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">
+        A challenge code will be generated. Share it and they have 2 hours to accept!
+      </p>
+
+      <!-- Code display (hidden until generated) -->
+      <div id="challenge-code-box" class="hidden"
+           style="background:var(--bg-subtle);border:2px dashed var(--accent-primary);border-radius:var(--radius-lg);padding:20px;text-align:center;margin-bottom:16px">
+        <p style="font-size:12px;color:var(--text-muted);font-weight:700;margin-bottom:6px">CHALLENGE CODE</p>
+        <div id="challenge-code-display"
+             style="font-size:32px;font-weight:900;color:var(--accent-primary);letter-spacing:4px"></div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:8px;font-weight:600">Expires in 2 hours</p>
+      </div>
+
+      <!-- Step 1: Generate -->
+      <div id="challenge-create-actions">
+        <button class="btn-primary btn-full" id="generate-challenge-btn">
+          <i class="fas fa-bolt"></i> Generate Challenge Link
+        </button>
+      </div>
+
+      <!-- Step 2: Share / Cancel (hidden until code generated) -->
+      <div id="challenge-share-actions" class="hidden" style="display:flex;flex-direction:column;gap:10px">
+        <button id="whatsapp-share-btn"
+                style="background:#25D366;color:white;border:none;padding:14px;border-radius:var(--radius-md);font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          <i class="fab fa-whatsapp"></i> Share on WhatsApp
+        </button>
+        <button id="challenge-cancel-btn" class="btn-secondary btn-full">
+          <i class="fas fa-times"></i> Cancel Challenge
+        </button>
+      </div>
+
+      <!-- Battle history (populated by app.js _loadBattleHistoryIntoHub) -->
+      <div style="margin-top:20px">
+        <p style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">
+          Recent Battles
+        </p>
+        <div id="challenge-hub-history"></div>
+      </div>
+    </div>
+  </div>
+  <!-- ══ MODAL: ACCEPT CHALLENGE ══ -->
+  <div id="challenge-accept-modal" class="modal hidden" role="dialog">
+    <div class="modal-content" style="max-width:440px">
+      <div style="font-size:44px;margin-bottom:12px">⚔️</div>
+      <h3 id="accept-challenge-title" style="margin-bottom:6px">Bible Quiz Challenge!</h3>
+      <p id="accept-challenge-sub" style="font-size:14px;color:var(--text-secondary);margin-bottom:20px">
+        Someone challenged you to a Bible quiz battle!
+      </p>
+
+      <div style="background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;margin-bottom:20px;font-size:13px;color:var(--text-muted)">
+        <p>⏱️ 15 questions, 6 minutes</p>
+        <p style="margin-top:6px">🏆 Winner gets +50 XP</p>
+        <p style="margin-top:6px">💪 Participants get +15 XP</p>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <input type="text" id="challenge-code-input"
+               placeholder="Enter challenge code (e.g. SQ-AB12)"
+               class="form-control"
+               style="text-align:center;font-size:18px;font-weight:800;letter-spacing:3px;text-transform:uppercase" />
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn-primary btn-full" id="accept-challenge-btn">
+          <i class="fas fa-fist-raised"></i> Accept Challenge!
+        </button>
+        <button class="btn-secondary btn-full" id="challenge-accept-modal-close-btn">Maybe Later</button>
       </div>
     </div>
   </div>
@@ -792,8 +772,10 @@
     </div>
   </div>
 
-  <!-- ══ FLOATING BATTLE BUTTON — hidden by default, shown when challenge is active ══ -->
-  <button id="battle-fab" class="battle-fab hidden" onclick="SQ.showScreen('challenge')" aria-label="Active Battle">
+  <!-- ══ FLOATING BATTLE BUTTON (FAB) ══ -->
+  <!-- FIX: onclick changed from SQ.showScreen('challenge') to SQ.openChallengeHub() -->
+  <!-- The old value routed to the legacy lobby screen instead of the hub modal.       -->
+  <button id="battle-fab" class="battle-fab hidden" onclick="SQ.openChallengeHub()" aria-label="Open Battle Hub">
     ⚔️
     <span class="battle-fab-label">Battle</span>
     <span class="battle-fab-dot" id="battle-fab-dot"></span>
