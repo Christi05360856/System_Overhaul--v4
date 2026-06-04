@@ -1,8 +1,12 @@
 import * as admin from 'firebase-admin';
 if (!admin.apps.length) { admin.initializeApp(); }
 
-export { createQuizSession }        from './quiz/createSession';
-export { submitQuizSession }        from './quiz/submitSession';
-export { processRewardClaim }       from './rewards/processRewardClaim';
-export { archiveWeeklyLeaderboard } from './leaderboard/archiveWeeklyLeaderboard';
-export { sendDailyReminders }       from './notifications/scheduler';
+export { createQuizSession }           from './quiz/createSession';
+export { submitQuizSession }           from './quiz/submitSession';
+export { processRewardClaim }          from './rewards/processRewardClaim';
+export { archiveWeeklyLeaderboard }    from './leaderboard/archiveWeeklyLeaderboard';
+export { sendDailyReminders }          from './notifications/scheduler';
+
+// ── Battle functions ──
+export { completeBattle }              from './battle/completeBattle';
+export { sendChallengeNotification }   from './battle/sendChallengeNotification';
