@@ -1115,7 +1115,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('whatsapp-contact-btn')?.addEventListener('click', () => {
-    window.open('https://wa.me/+2349167055488text=Hi%2C%20Admin%20I%20need%20help%20with%20ScriptureQuest', '_blank');
+    window.open('https://wa.me/+2349167055488text=Hi%2C%20I%20need%20help%20with%20ScriptureQuest', '_blank');
   });
 
   document.getElementById('levelup-close-btn')?.addEventListener('click', () => {
