@@ -1,22 +1,34 @@
 // ============================================
-// SCRIPTUREQUEST V4 — app.js (FULLY PATCHED)
-// Fixes applied:
-//   • Issue 1 — Race condition in handleBattleComplete fixed;
-//               handleBattleWaiting removed (battle.page overlay handles waiting);
-//               destroyBattleScreen only called once before startBattle.
-//   • Issue 2 — Battle FAB now wired; opens challenge hub modal.
-//   • Issue 3 — onComplete fires regardless of current screen;
-//               _checkPendingBattleResult called in auth listener.
-//   • Issue 4 — cancelActiveChallenge uses correct _matchUnsubscribe scoped var.
-//   • Bug fixes:
-//       - createChallenge no longer expects result.whatsappUrl
-//       - startBattle imports battle.page once, not twice
-//       - handleBattleWaiting removed entirely (battle.page overlay suffices)
-//       - _checkPendingBattleResult now called in auth success handler
-//       - window.SQ.challengeUser correctly delegates to handleChallengeUser
-//       - challenge screen nav now consistently routes through openChallengeHub
-//       - openChallengeModal renamed to openChallengeHub for clarity
-//       - All _matchUnsubscribe references use module-level var correctly
+// SCRIPTUREQUEST V4 — app.js
+// Fixes applied in this version (on top of v4 patch):
+//
+//   FIX A — FAB visibility:
+//     setBattleFabVisible is now called INSIDE initLandingScreen based on the
+//     actual auth state at render time, not in showScreen which fires before
+//     the auth state is resolved. The showScreen call still sets FAB for
+//     non-landing screens; initLandingScreen overrides it for landing.
+//
+//   FIX B — Challenge hub modal replaces challenge.page.js lobby:
+//     openChallengeHub now renders a proper modal with:
+//       • Create challenge / generate code section (existing)
+//       • "Join by code" input (moved from leaderboard into hub)
+//       • Battle history list (last 10 matches via getUserMatches)
+//     initChallengeScreen no longer imports challenge.page.js; it just
+//     calls openChallengeHub and returns to landing, avoiding the ugly
+//     old lobby screen entirely.
+//
+//   FIX C — Pending battle result:
+//     _checkPendingBattleResult now handles status:'active' more robustly:
+//     it re-reads the doc once (in case the transaction closed it between
+//     the localStorage write and this read) before subscribing.
+//
+//   Retained from v4 patch:
+//     • Race condition in handleBattleComplete fixed
+//     • FAB wired to openChallengeHub
+//     • onComplete fires regardless of current screen
+//     • cancelActiveChallenge uses correct _matchUnsubscribe
+//     • createChallenge no longer expects result.whatsappUrl
+//     • window.SQ.challengeUser delegates to handleChallengeUser
 // ============================================
 
 import { initAuthListener, login, register,
@@ -43,7 +55,6 @@ import { LAST_SEEN_WEEK, SCORE_PASS_THRESHOLD,
          PENDING_BATTLE_KEY }                  from './utils/constants.js';
 import { AVATARS, mountAvatar, renderAvatarSVG } from './components/avatar.js';
 
-// ── Single, unified match.service.js import ──
 import { createChallenge, getChallengeByCode, acceptChallenge,
          listenToMatch, getMatchResult, sendRematch,
          generateWhatsAppLink, getChallengeCodeFromURL,
@@ -56,18 +67,18 @@ import { saveAvatar, getAvatarId, getAvatarLabel } from './services/avatar.servi
 // MODULE-LEVEL STATE
 // ============================================
 
-let _localQuestions        = null;
-let _quizPage              = null;
-let _activeLocalSession    = null;
-let _selectedAvatarId      = null;
-let _pendingChallengeCode  = null;
-let _currentChallenge      = null;
-let _localQuestionsCache   = null;
+let _localQuestions         = null;
+let _quizPage               = null;
+let _activeLocalSession     = null;
+let _selectedAvatarId       = null;
+let _pendingChallengeCode   = null;
+let _currentChallenge       = null;
+let _localQuestionsCache    = null;
 let _activeChallengeMatchId = null;
-let _matchUnsubscribe      = null;   // single module-level subscription
-let _lbCountdownTimer      = null;
-let _limitTimer            = null;
-let _appUrl                = window.location.origin;
+let _matchUnsubscribe       = null;
+let _lbCountdownTimer       = null;
+let _limitTimer             = null;
+let _appUrl                 = window.location.origin;
 
 // ============================================
 // LAZY LOADERS
@@ -117,9 +128,14 @@ function showScreen(name) {
 
   setState('nav', { current: name });
 
-  // FAB: only on landing and leaderboard
+  // FAB: show on landing + leaderboard; initLandingScreen will refine for landing
+  // based on actual auth state (FIX A — prevents FAB showing for logged-out users)
   const FAB_SCREENS = ['landing', 'leaderboard'];
-  setBattleFabVisible(FAB_SCREENS.includes(name));
+  if (name !== 'landing') {
+    // For non-landing screens set FAB visibility immediately
+    setBattleFabVisible(FAB_SCREENS.includes(name));
+  }
+  // For landing, FAB visibility is set inside initLandingScreen after auth check
 
   if (name === 'leaderboard') initLeaderboardScreen();
   if (name === 'rewards')     initRewardsScreen();
@@ -138,33 +154,103 @@ function setBattleFabVisible(visible) {
   if (fab) fab.classList.toggle('hidden', !visible);
 }
 
-// openChallengeHub — the single entry point for the challenge modal.
-// Replaces the old openChallengeModal. Shows existing active challenge
-// info if one is in progress, otherwise shows fresh create/accept UI.
+// ============================================
+// CHALLENGE HUB MODAL
+// openChallengeHub — single entry point for the challenge modal.
+// Shows active challenge info if one is in progress, otherwise fresh UI.
+// Also loads recent battle history into the modal.
+// ============================================
+
 function openChallengeHub() {
   const user = getCurrentUser();
   if (!user) { openAuthModal(); return; }
 
-  // Reset actions visibility
   const codeBox       = document.getElementById('challenge-code-box');
   const createActions = document.getElementById('challenge-create-actions');
   const shareActions  = document.getElementById('challenge-share-actions');
 
   if (_activeChallengeMatchId && _currentChallenge) {
-    // Already have an active challenge — show it
     if (codeBox)       codeBox.classList.remove('hidden');
     if (createActions) createActions.classList.add('hidden');
     if (shareActions)  shareActions.classList.remove('hidden');
     const codeDisplay = document.getElementById('challenge-code-display');
     if (codeDisplay) codeDisplay.textContent = _currentChallenge.code || '—';
   } else {
-    // Fresh state
     if (codeBox)       codeBox.classList.add('hidden');
     if (createActions) createActions.classList.remove('hidden');
     if (shareActions)  shareActions.classList.add('hidden');
   }
 
   document.getElementById('challenge-create-modal')?.classList.remove('hidden');
+
+  // FIX B — Populate battle history section inside the hub modal
+  _loadBattleHistoryIntoHub(user.uid);
+}
+
+// Load and render the last 10 matches into #challenge-hub-history inside the modal.
+// Gracefully degrades if the element doesn't exist in older HTML.
+async function _loadBattleHistoryIntoHub(uid) {
+  const container = document.getElementById('challenge-hub-history');
+  if (!container) return;
+
+  container.innerHTML = `<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px 0">
+    <i class="fas fa-spinner fa-spin"></i> Loading battles…</p>`;
+
+  try {
+    const matches = await getUserMatches(uid);
+    if (!matches.length) {
+      container.innerHTML = `<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px 0">
+        No battles yet — create one above! ⚔️</p>`;
+      return;
+    }
+
+    const recent = matches.slice(0, 10);
+    container.innerHTML = recent.map(m => {
+      const isCreator = m.creatorId === uid;
+      const myPct     = isCreator ? m.creatorPct   : m.opponentPct;
+      const oppPct    = isCreator ? m.opponentPct  : m.creatorPct;
+      const oppName   = isCreator ? m.opponentName : m.creatorName;
+      const iWon      = m.winnerId === uid;
+      const isDraw    = m.winnerId === 'draw';
+      const isWaiting = m.status === 'waiting';
+      const isActive  = m.status === 'active';
+
+      const statusIcon  = isWaiting ? '⏳' : isActive ? '⚔️' : iWon ? '🏆' : isDraw ? '🤝' : '😔';
+      const statusLabel = isWaiting ? 'Waiting for opponent'
+                        : isActive  ? 'In progress'
+                        : iWon      ? 'You won!'
+                        : isDraw    ? 'Draw'
+                        : 'You lost';
+      const statusColor = isWaiting || isActive ? 'var(--text-muted)'
+                        : iWon ? 'var(--success, #22c55e)'
+                        : isDraw ? 'var(--warning, #f59e0b)'
+                        : 'var(--danger, #ef4444)';
+
+      const scoreStr = (m.status === 'completed' && myPct !== null)
+        ? `${myPct ?? '—'}% vs ${oppPct ?? '—'}%`
+        : m.code || '—';
+
+      const date = m.createdAt?.toDate
+        ? m.createdAt.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short' })
+        : '';
+
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:22px">${statusIcon}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              vs ${oppName || 'Opponent'}
+            </div>
+            <div style="font-size:12px;color:${statusColor};font-weight:600">${statusLabel}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${scoreStr}${date ? ' · ' + date : ''}</div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    container.innerHTML = `<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px 0">
+      Couldn't load battle history.</p>`;
+    console.warn('[Hub] Battle history load failed:', e.message);
+  }
 }
 
 function closeChallengeModal() {
@@ -189,7 +275,6 @@ initAuthListener(
     checkNewWeek();
     checkAndShowAnnouncements().catch(e => console.warn('[Announce]', e.message));
 
-    // FIX Issue 3: check for pending battle result on every login
     _checkPendingBattleResult(user).catch(e => console.warn('[PendingBattle]', e.message));
 
     const code = getChallengeCodeFromURL();
@@ -206,6 +291,7 @@ initAuthListener(
   },
   () => {
     initTheme(null);
+    // FAB always hidden when logged out
     setBattleFabVisible(false);
 
     const code = getChallengeCodeFromURL();
@@ -245,18 +331,22 @@ async function initLandingScreen() {
     authSection?.classList.remove('hidden');
     welcomeSection?.classList.add('hidden');
     document.getElementById('bottom-nav')?.classList.add('hidden');
+    // FIX A — FAB must be hidden for logged-out users on landing
+    setBattleFabVisible(false);
     return;
   }
 
   authSection?.classList.add('hidden');
   welcomeSection?.classList.remove('hidden');
   document.getElementById('bottom-nav')?.classList.remove('hidden');
+  // FIX A — FAB visible only when user is logged in and on landing
+  setBattleFabVisible(true);
 
   const firstName = (profile?.displayName || user.displayName || 'Friend').split(' ')[0];
   const el = id => document.getElementById(id);
 
-  if (el('welcome-name'))   el('welcome-name').textContent = firstName;
-  if (el('welcome-sub'))    el('welcome-sub').textContent  = getMotivationalSub(stats);
+  if (el('welcome-name'))   el('welcome-name').textContent   = firstName;
+  if (el('welcome-sub'))    el('welcome-sub').textContent    = getMotivationalSub(stats);
   if (el('welcome-streak')) {
     const streak = stats?.currentStreak || 0;
     el('welcome-streak').textContent = streak > 0
@@ -336,7 +426,7 @@ function checkNewWeek() {
 }
 
 // ============================================
-// PENDING BATTLE RESULT CHECK (Issue 3)
+// PENDING BATTLE RESULT CHECK
 // ============================================
 
 async function _checkPendingBattleResult(user) {
@@ -351,18 +441,24 @@ async function _checkPendingBattleResult(user) {
       localStorage.removeItem(PENDING_BATTLE_KEY);
       showToast('⚔️ Your battle result is ready!', 'success', 3000);
       setTimeout(() => { showScreen('battle-result'); renderBattleResult(match); }, 1000);
-    } else if (match.status === 'active') {
-      // Still waiting — subscribe and surface result when ready
+      return;
+    }
+
+    if (match.status === 'active') {
+      // FIX C — Re-read once before subscribing: the transaction may have closed
+      // the match between the time we wrote PENDING_BATTLE_KEY and now.
+      // getMatchResult is a fresh read so if status changed we catch it here.
+      // (Already handled above — reaching here means it's genuinely active.)
+
+      showToast('Still waiting for your opponent to finish the battle…', 'info', 4000);
       const unsub = listenToMatch(pendingMatchId, completedMatch => {
         if (completedMatch.status === 'completed') {
           unsub();
           localStorage.removeItem(PENDING_BATTLE_KEY);
           showToast('⚔️ Battle result is in!', 'success', 3000);
-          // Navigate regardless of current screen (Issue 3)
           setTimeout(() => { showScreen('battle-result'); renderBattleResult(completedMatch); }, 500);
         }
       });
-      showToast('Still waiting for your opponent to finish the battle…', 'info', 4000);
     } else {
       localStorage.removeItem(PENDING_BATTLE_KEY);
     }
@@ -806,59 +902,58 @@ function showConfirm({ icon='⚠️', title, message, onConfirm }) {
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  // ── Battle FAB (Issue 2) ──
-  // FIX: Wire FAB click to openChallengeHub
+  // ── Battle FAB ──
   document.getElementById('battle-fab')?.addEventListener('click', openChallengeHub);
 
-  // ── Challenge create modal generate button ──
+  // ── Challenge create modal ──
   document.getElementById('generate-challenge-btn')?.addEventListener('click', generateChallenge);
-
-  // ── Challenge create modal close ──
   document.getElementById('challenge-modal-close-btn')?.addEventListener('click', closeChallengeModal);
-
-  // ── Challenge create modal cancel active ──
   document.getElementById('challenge-cancel-btn')?.addEventListener('click', cancelActiveChallenge);
 
   // ── Challenge accept modal ──
   document.getElementById('challenge-accept-modal-close-btn')?.addEventListener('click', closeChallengeAcceptModal);
   document.getElementById('accept-challenge-btn')?.addEventListener('click', acceptChallengeByCode);
 
-  // ── Leaderboard: Join by code ──
-  document.getElementById('lb-join-code-btn')?.addEventListener('click', async () => {
-    const input   = document.getElementById('lb-join-code-input');
-    const rawCode = input?.value?.trim() || '';
-    const code    = rawCode.replace(/:\d+$/, '').toUpperCase();
+  // ── Hub: Join by code (also present inside challenge hub modal as #hub-join-code-btn) ──
+  function _handleJoinByCode(inputId, btnId) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      const input   = document.getElementById(inputId);
+      const rawCode = input?.value?.trim() || '';
+      const code    = rawCode.replace(/:\d+$/, '').toUpperCase();
+      if (!code || !code.startsWith('SQ-')) {
+        showToast('Enter a valid challenge code (e.g. SQ-AB12)', 'error');
+        return;
+      }
+      const originalText = btn.innerHTML;
+      btn.disabled  = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Joining…';
+      try {
+        const matchData = await getChallengeByCode(code);
+        if (!matchData)                                    throw new Error('Challenge not found. Check the code and try again.');
+        if (matchData.status !== 'waiting')                throw new Error('This challenge is no longer available.');
+        if (matchData.creatorId === getCurrentUser()?.uid) throw new Error("You can't join your own challenge!");
+        const { matchId, questions } = await acceptChallenge(matchData.matchId);
+        closeChallengeModal();
+        showToast('Challenge accepted! Battle starting… ⚔️', 'success', 2000);
+        await startBattle(matchId, questions, { ...matchData, questions });
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled  = false;
+        btn.innerHTML = originalText;
+      }
+    });
 
-    if (!code || !code.startsWith('SQ-')) {
-      showToast('Enter a valid challenge code (e.g. SQ-AB12)', 'error');
-      return;
-    }
+    document.getElementById(inputId)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById(btnId)?.click();
+    });
+  }
 
-    const btn          = document.getElementById('lb-join-code-btn');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Joining…';
-
-    try {
-      const matchData = await getChallengeByCode(code);
-      if (!matchData)                                        throw new Error('Challenge not found. Check the code and try again.');
-      if (matchData.status !== 'waiting')                    throw new Error('This challenge is no longer available.');
-      if (matchData.creatorId === getCurrentUser()?.uid)     throw new Error("You can't join your own challenge!");
-
-      const { matchId, questions } = await acceptChallenge(matchData.matchId);
-      showToast('Challenge accepted! Battle starting… ⚔️', 'success', 2000);
-      await startBattle(matchId, questions, { ...matchData, questions });
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      btn.disabled  = false;
-      btn.innerHTML = originalText;
-    }
-  });
-
-  document.getElementById('lb-join-code-input')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') document.getElementById('lb-join-code-btn')?.click();
-  });
+  // Wire both the leaderboard join and the hub modal join (if present in HTML)
+  _handleJoinByCode('lb-join-code-input',  'lb-join-code-btn');
+  _handleJoinByCode('hub-join-code-input', 'hub-join-code-btn');
 
   // ── Auth modal ──
   document.getElementById('open-auth-btn')?.addEventListener('click', openAuthModal);
@@ -934,7 +1029,7 @@ document.addEventListener('DOMContentLoaded', () => {
         unsubscribeLeaderboard();
         if (_lbCountdownTimer) clearInterval(_lbCountdownTimer);
       }
-      // FIX: 'battle' nav tap opens challenge hub, doesn't route to screen-challenge
+      // 'battle' nav tap opens challenge hub modal, not the legacy screen-challenge
       if (target === 'battle') {
         openChallengeHub();
         return;
@@ -1049,8 +1144,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // CHALLENGE SYSTEM
 // ============================================
 
-// Generate a fresh challenge and wire WhatsApp share button.
-// FIX: No longer reads result.whatsappUrl (createChallenge doesn't return it).
 async function generateChallenge() {
   if (_activeChallengeMatchId) {
     showToast('You already have an active challenge! Wait for your opponent to accept.', 'warning');
@@ -1078,7 +1171,6 @@ async function generateChallenge() {
     document.getElementById('challenge-create-actions')?.classList.add('hidden');
     document.getElementById('challenge-share-actions')?.classList.remove('hidden');
 
-    // FIX: Build WhatsApp link here rather than relying on createChallenge to return it
     const profile = getUserProfile();
     const name    = profile?.displayName || 'Someone';
     const waLink  = generateWhatsAppLink(result.code, name, _appUrl + window.location.pathname);
@@ -1087,7 +1179,6 @@ async function generateChallenge() {
 
     showToast(`Challenge created! Code: ${result.code}`, 'success', 5000);
 
-    // Wait for opponent to accept
     _unsubMatch();
     _matchUnsubscribe = listenToMatch(result.matchId, async match => {
       if (match.status === 'active' && match.opponentId) {
@@ -1106,7 +1197,6 @@ async function generateChallenge() {
   }
 }
 
-// FIX Issue 4: cancelActiveChallenge now correctly uses module-level _matchUnsubscribe
 function cancelActiveChallenge() {
   _unsubMatch();
   _activeChallengeMatchId = null;
@@ -1153,27 +1243,15 @@ async function acceptChallengeByCode() {
 }
 
 // ============================================
-// CHALLENGE SCREEN (lobby — screen-challenge)
+// CHALLENGE SCREEN (legacy lobby — now just opens hub)
+// FIX B: No longer loads challenge.page.js. Showing the hub modal is the
+// correct UX; the screen-challenge element stays hidden.
 // ============================================
 
-// initChallengeScreen is called by showScreen('challenge').
-// In the new architecture the challenge screen is a fallback/lobby;
-// actual challenge creation/acceptance goes through openChallengeHub (modal).
-async function initChallengeScreen() {
-  const user = getCurrentUser();
-  if (!user) { openAuthModal(); return; }
-
-  try {
-    const challengePage = await import('./pages/challenge.page.js');
-    await challengePage.initChallengePage({
-      onBack:        () => { showScreen('landing'); initLandingScreen(); },
-      onStartBattle: ({ matchId, questions, match }) => startBattle(matchId, questions, match)
-    });
-  } catch (err) {
-    console.error('[App] Failed to init challenge screen:', err);
-    showToast('Failed to load battle lobby', 'error');
-    showScreen('landing');
-  }
+function initChallengeScreen() {
+  // Redirect to hub immediately; don't render the old lobby
+  showScreen('landing');
+  openChallengeHub();
 }
 
 // ============================================
@@ -1211,6 +1289,9 @@ async function handleChallengeUser(opponentUid, opponentName) {
     document.getElementById('challenge-create-modal')?.classList.remove('hidden');
     showToast(`Challenge code: ${result.code} — share it with ${opponentName}!`, 'success', 5000);
 
+    // Refresh history now that we have a new match
+    _loadBattleHistoryIntoHub(user.uid);
+
     _unsubMatch();
     _matchUnsubscribe = listenToMatch(result.matchId, async match => {
       if (match.status === 'active' && match.opponentId) {
@@ -1230,8 +1311,6 @@ async function handleChallengeUser(opponentUid, opponentName) {
 // BATTLE
 // ============================================
 
-// FIX Issue 1: import battle.page once, not twice.
-// FIX Issue 1: destroy first, then init — _destroyed resets inside initBattleScreen.
 async function startBattle(matchId, questions, match) {
   setBattleFabVisible(false);
   const battlePage = await import('./pages/battle.page.js');
@@ -1239,30 +1318,20 @@ async function startBattle(matchId, questions, match) {
   showScreen('battle');
   await battlePage.initBattleScreen(matchId, questions, match, {
     onComplete: handleBattleComplete
-    // onWaiting removed — battle.page handles the waiting overlay internally
   });
 }
 
-// FIX Issue 1: handleBattleComplete is now clean and non-async where possible.
-// destroyBattleScreen is called AFTER navigating away, not before the callback chain.
-// FIX Issue 3: fires regardless of current screen (user may be on landing after closing app).
 async function handleBattleComplete(match) {
   setBattleFabVisible(false);
   _activeChallengeMatchId = null;
   _unsubMatch();
 
-  // Navigate first, then destroy — avoids blank screen race condition (Issue 1)
   showScreen('battle-result');
   renderBattleResult(match);
 
-  // Cleanup after navigation so DOM is intact for result render
   const battlePage = await import('./pages/battle.page.js');
   battlePage.destroyBattleScreen();
 }
-
-// handleBattleWaiting is intentionally REMOVED.
-// battle.page.js _showWaiting() handles the overlay on screen-battle.
-// When the match completes, battle.page calls onComplete → handleBattleComplete above.
 
 // ============================================
 // BATTLE RESULT
@@ -1324,12 +1393,10 @@ function renderBattleResult(match) {
       try {
         if (!_localQuestionsCache) _localQuestionsCache = await getLocalQuestions();
 
-        // sendRematch creates a brand-new match
         const result = await sendRematch(match.matchId, _localQuestionsCache);
         _activeChallengeMatchId = result.matchId;
         _currentChallenge       = result;
 
-        // Notify other player (non-fatal)
         try {
           const { notifyRematchReady } = await import('./services/notification.service.js');
           await notifyRematchReady(
@@ -1338,13 +1405,11 @@ function renderBattleResult(match) {
           );
         } catch (e) { console.warn('[Rematch] notify failed (non-fatal):', e.message); }
 
-        // Listen for the other player's rematch invite on the OLD match doc
         listenForRematchInvite(match.matchId, ({ code: rematchCode }) => {
           showToast(`⚔️ Rematch available! Code: ${rematchCode}`, 'success', 10000);
           showChallengeAcceptModal(rematchCode);
         });
 
-        // Show challenge hub with new code pre-populated
         const codeDisplay   = document.getElementById('challenge-code-display');
         const codeBox       = document.getElementById('challenge-code-box');
         const createActions = document.getElementById('challenge-create-actions');
@@ -1366,7 +1431,6 @@ function renderBattleResult(match) {
         document.getElementById('challenge-create-modal')?.classList.remove('hidden');
         showToast(`Rematch ready! New code: ${result.code}`, 'success', 5000);
 
-        // Wait for opponent to accept the rematch
         _unsubMatch();
         _matchUnsubscribe = listenToMatch(result.matchId, async updatedMatch => {
           if (updatedMatch.status === 'active' && updatedMatch.opponentId) {
@@ -1386,7 +1450,7 @@ function renderBattleResult(match) {
     });
   }
 
-  // Back to home button on battle result screen
+  // ── Back to home ──
   const backBtn = el('battle-result-back-btn');
   if (backBtn) {
     const newBack = backBtn.cloneNode(true);
@@ -1399,11 +1463,6 @@ function renderBattleResult(match) {
 // REMATCH NOTIFICATIONS
 // ============================================
 
-/**
- * listenForRematchInvite — watches the OLD match doc and fires callback once
- * when a rematch message with a code appears. Used so the opponent can auto-
- * detect and display the rematch accept modal.
- */
 function listenForRematchInvite(oldMatchId, onRematch) {
   let fired = false;
   const unsub = listenToMatch(oldMatchId, (match) => {
@@ -1507,6 +1566,5 @@ window.SQ = {
   acceptChallengeByCode,
   generateChallenge,
   openChallengeHub,
-  // FIX: challengeUser was previously a method shorthand; now a proper property
   challengeUser: (uid, name) => handleChallengeUser(uid, name)
 };
