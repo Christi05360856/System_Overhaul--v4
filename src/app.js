@@ -28,15 +28,7 @@
 //     • handleDirectChallenge / incoming/outgoing overlays added
 //     • initLeaderboardScreen updated with presence dots + challenge buttons
 //     • _loadBattleHistoryIntoHub updated to compact table format
-//
-//   Retained from v4 patch:
-//     • Race condition in handleBattleComplete fixed
-//     • FAB wired to openChallengeHub
-//     • onComplete fires regardless of current screen
-//     • cancelActiveChallenge uses correct _matchUnsubscribe
-//     • createChallenge no longer expects result.whatsappUrl
-//     • window.SQ.challengeUser delegates to handleChallengeUser
-// ============================================
+
 
 import { initAuthListener, login, register,
          logout, updateProfile_,
