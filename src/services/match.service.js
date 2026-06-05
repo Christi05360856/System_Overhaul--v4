@@ -1,18 +1,19 @@
 // ============================================
 // SCRIPTUREQUEST V4 — Match Service
-// KEY CHANGE: submitBattleAnswers no longer uses
-// a client-side Firestore transaction (unreliable
-// on mobile). New flow:
-//   1. Write own score directly (simple updateDoc)
-//   2. Call completeBattle Cloud Function
-//   3. CF closes match atomically server-side
-//   4. onSnapshot on both clients fires → navigate
+// KEY CHANGE: Pure Firestore submit — NO Cloud Function.
+// submitBattleAnswers now:
+//   1. Writes own score + done flag atomically via updateDoc
+//   2. Immediately re-reads the doc
+//   3. If bothDone, computes winner and writes status:'completed'
+//   4. Returns result to caller
+//
+// This eliminates the CF failure path, the done-flag mismatch,
+// and the subscription gap in battle.page.
 // ============================================
 
 import { doc, collection, addDoc, getDoc, updateDoc,
          query, where, getDocs, onSnapshot,
          serverTimestamp, Timestamp } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, auth }    from '../firebase/config.js';
 import { getCurrentWeekId } from '../utils/week.js';
 
@@ -23,15 +24,6 @@ function generateCode() {
   return 'SQ-' + Array.from({ length: 4 }, () =>
     chars[Math.floor(Math.random() * chars.length)]
   ).join('');
-}
-
-let _completeBattleFn = null;
-function getCompleteBattleFn() {
-  if (!_completeBattleFn) {
-    const fns = getFunctions();
-    _completeBattleFn = httpsCallable(fns, 'completeBattle');
-  }
-  return _completeBattleFn;
 }
 
 export async function createChallenge(questions) {
@@ -54,6 +46,7 @@ export async function createChallenge(questions) {
     creatorAnswers: {}, opponentAnswers: {},
     creatorScore: null, opponentScore: null,
     creatorPct: null, opponentPct: null,
+    creatorDone: false, opponentDone: false,   // ← explicit init
     winnerId: null, weekId: getCurrentWeekId(),
     createdAt: serverTimestamp(), expiresAt,
     challengeType: 'code',
@@ -91,8 +84,7 @@ export async function acceptChallenge(matchId) {
 }
 
 // ============================================
-// SUBMIT — simple write + Cloud Function call
-// No client-side transaction. Bulletproof on mobile.
+// SUBMIT — Pure Firestore, NO Cloud Function
 // ============================================
 export async function submitBattleAnswers(matchId, userAnswers) {
   const user = auth.currentUser;
@@ -121,26 +113,43 @@ export async function submitBattleAnswers(matchId, userAnswers) {
   questions.forEach((q, i) => { if (userAnswers[i] === q.correctAnswer) score++; });
   const pct = questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
 
-  // Step 1: Write own score
+  // Step 1: Write own score AND done flag together
   const updates = isCreator
-    ? { creatorAnswers: userAnswers, creatorScore: score, creatorPct: pct }
-    : { opponentAnswers: userAnswers, opponentScore: score, opponentPct: pct };
+    ? { creatorAnswers: userAnswers, creatorScore: score, creatorPct: pct, creatorDone: true, creatorDoneAt: serverTimestamp() }
+    : { opponentAnswers: userAnswers, opponentScore: score, opponentPct: pct, opponentDone: true, opponentDoneAt: serverTimestamp() };
   await updateDoc(matchRef, updates);
 
-  // Step 2: Call Cloud Function to close match if both submitted
-  try {
-    const completeFn = getCompleteBattleFn();
-    const result     = await completeFn({ matchId });
-    const data       = result.data;
+  // Step 2: Re-read to check if both are done
+  const updatedSnap = await getDoc(matchRef);
+  const updated     = updatedSnap.data();
+  const bothDone    = updated.creatorDone && updated.opponentDone;
+
+  if (bothDone) {
+    // Compute winner and close match
+    const creatorPct  = updated.creatorPct  ?? 0;
+    const opponentPct = updated.opponentPct ?? 0;
+    let winnerId;
+    if (creatorPct > opponentPct)      winnerId = updated.creatorId;
+    else if (opponentPct > creatorPct) winnerId = updated.opponentId;
+    else                               winnerId = 'draw';
+
+    await updateDoc(matchRef, {
+      status: 'completed',
+      winnerId,
+      completedAt: serverTimestamp()
+    });
+
     return {
       score, percentage: pct, totalQuestions: questions.length,
-      bothDone: data.bothDone || data.alreadyCompleted || false,
-      matchId
+      bothDone: true, matchId
     };
-  } catch (cfErr) {
-    console.warn('[Match] completeBattle CF error (non-fatal, onSnapshot will handle):', cfErr.message);
-    return { score, percentage: pct, totalQuestions: questions.length, bothDone: false, matchId };
   }
+
+  // Not both done yet — caller will poll/wait
+  return {
+    score, percentage: pct, totalQuestions: questions.length,
+    bothDone: false, matchId
+  };
 }
 
 export async function getMatchResult(matchId) {
@@ -174,8 +183,11 @@ export async function sendRematch(oldMatchId, questions) {
     opponentId: null, opponentName: null, opponentAvatar: null,
     status: 'waiting', questions: shuffled,
     creatorAnswers: {}, opponentAnswers: {},
-    creatorScore: null, opponentScore: null, creatorPct: null, opponentPct: null,
-    winnerId: null, weekId: getCurrentWeekId(), createdAt: serverTimestamp(), expiresAt,
+    creatorScore: null, opponentScore: null,
+    creatorPct: null, opponentPct: null,
+    creatorDone: false, opponentDone: false,   // ← explicit init
+    winnerId: null, weekId: getCurrentWeekId(),
+    createdAt: serverTimestamp(), expiresAt,
     challengeType: 'code', rematchOf: oldMatchId,
     messages: [{ type:'rematch', text:`🔄 ${displayName} wants a rematch!`, timestamp: Date.now() }]
   });
