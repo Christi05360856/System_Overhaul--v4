@@ -1768,9 +1768,20 @@ document.addEventListener('DOMContentLoaded', () => {
     () => initLeaderboardScreen());
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('[SW] Registered:', reg.scope))
-      .catch(err => console.warn('[SW] Registration failed:', err));
+    navigator.serviceWorker.register('/sw.js').then(registration => {
+      console.log('[SW] Registered:', registration.scope);
+      registration.update();
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            console.log('[SW] New version available — reloading...');
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+            window.location.reload();
+          }
+        });
+      });
+    }).catch(err => console.warn('[SW] Registration failed:', err));
   }
 });
 
