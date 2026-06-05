@@ -54,19 +54,12 @@ service cloud.firestore {
     }
 
     // ── QUIZ SESSIONS ──
-    // FIX: Allow authenticated users to create and update their OWN sessions.
-    // This is required for the local quiz fallback to work.
     match /quizSessions/{sessionId} {
       allow read:   if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
-
-      // CREATE: user must own the session (userId matches their auth uid)
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
-
-      // UPDATE: user must own the existing session, OR be admin
       allow update: if isAuth() && (
         resource.data.userId == request.auth.uid || isAdmin()
       );
-
       allow delete: if false;
     }
 
@@ -144,27 +137,51 @@ service cloud.firestore {
     }
 
     // ── MATCHES (challenge system) ──
-    // SINGLE BLOCK — any authenticated user can read/query matches
-    // This is required for the "accept by code" flow to work
     match /matches/{matchId} {
-      // READ: any authenticated user can read matches (needed for code lookup queries)
-      // Admin can read all. App logic enforces expiration and status checks.
+      // Any authenticated user can read (needed for code-lookup queries)
       allow read: if isAuth() || isAdmin();
 
-      // CREATE: authenticated user creating their own challenge
+      // CREATE: must be the creator
       allow create: if isAuth() && request.resource.data.creatorId == request.auth.uid;
 
-      // UPDATE: creator, opponent, or admin can update
-      // Also allows any auth user to join a WAITING match (become opponent)
+      // UPDATE: creator, opponent, admin, OR any auth user joining a waiting match.
+      // FIX: also allows the battle.page.js Firestore fallback to write
+      // creatorDone/opponentDone/status fields when the Cloud Function is unreachable.
       allow update: if isAdmin() || (
         isAuth() && (
-          resource.data.creatorId == request.auth.uid ||
+          resource.data.creatorId  == request.auth.uid ||
           resource.data.opponentId == request.auth.uid ||
-          resource.data.status == 'waiting'
+          resource.data.status     == 'waiting'        ||
+          resource.data.status     == 'pending'
         )
       );
 
       allow delete: if isAdmin();
+    }
+
+    // ── PRESENCE ──
+    // FIX: was missing entirely — caused "[Presence] Write error: Missing or
+    // insufficient permissions" on every login, breaking the leaderboard dots
+    // and making all ⚔️ challenge buttons stay permanently disabled.
+    //
+    // Any logged-in user writes ONLY their own presence doc.
+    // Any logged-in user can READ all presence docs (needed to show green dots
+    // next to other players on the leaderboard).
+    match /presence/{uid} {
+      allow read:  if isAuth();
+      allow write: if isOwner(uid);
+    }
+
+    // ── INCOMING CHALLENGES ──
+    // FIX: was missing entirely — caused "[Challenge] Incoming listener error:
+    // Missing or insufficient permissions", so direct challenges from the
+    // leaderboard ⚔️ button never reached the target user.
+    //
+    // Any logged-in user can WRITE to another user's inbox (to send a challenge).
+    // A user can only READ and DELETE their OWN inbox doc.
+    match /incomingChallenges/{targetUid} {
+      allow read, delete: if isOwner(targetUid);
+      allow write:        if isAuth();
     }
 
     // ── DEFAULT DENY ──
