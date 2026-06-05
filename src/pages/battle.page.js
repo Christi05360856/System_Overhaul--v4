@@ -1,28 +1,15 @@
 // ============================================
 // SCRIPTUREQUEST V4 — Battle Page
-// FIXES IN THIS VERSION:
+// OPTION A: Firestore onWrite trigger.
+// submitBattleAnswers writes score + done flag.
+// The server-side trigger closes the match.
+// Client just waits for onSnapshot to fire.
 //
-//   FIX A — No Cloud Function dependency:
-//     submitBattleAnswers now uses pure Firestore.
-//     Removed CF fallback; match.service handles
-//     winner computation directly.
-//
-//   FIX B — Subscription gap eliminated:
-//     The match listener is NEVER torn down during
-//     submit. It stays alive so onSnapshot can fire
-//     and trigger onComplete even while we await.
-//
-//   FIX C — Guaranteed re-read loop:
-//     After bothDone:false, we poll getMatchResult
-//     with exponential back-off (250ms → 2000ms) for
-//     up to 30 seconds instead of a single read.
-//     This catches the other player's write even on
-//     high-latency mobile networks.
-//
-//   FIX D — Race-safe onComplete:
-//     onComplete is guarded by a _completed flag so
-//     it can only fire once, even if both the poll
-//     loop and onSnapshot trigger simultaneously.
+// FIXES:
+//   - No Cloud Function call from client (no CORS/no timeout)
+//   - No race condition (single server-side closer)
+//   - Listener stays alive entire battle lifecycle
+//   - No polling loop needed — onSnapshot handles everything
 // ============================================
 
 import { submitBattleAnswers, listenToMatch, getMatchResult } from '../services/match.service.js';
@@ -40,7 +27,7 @@ let _matchUnsub = null;
 let _submitting = false;
 let _callbacks  = {};
 let _destroyed  = false;
-let _completed  = false;   // ← FIX D: guards against double onComplete
+let _completed  = false;
 
 const el = id => document.getElementById(id);
 
@@ -82,39 +69,32 @@ export async function initBattleScreen(matchId, questions, match, callbacks) {
   renderQuestion();
   _startTimer();
 
-  // FIX B: Start listener once, keep it alive. Never unsub during submit.
+  // Start the match listener ONCE. Keep it alive for the entire battle.
+  // It will fire when the onWrite trigger sets status: 'completed'.
   _matchUnsub = listenToMatch(matchId, matchUpdate => {
     if (_destroyed || _completed) return;
+
+    // Catch already-completed before we even started (rare but possible)
     if (matchUpdate.status === 'completed') {
-      _completed = true;
-      _cleanup();
-      try { localStorage.removeItem(PENDING_BATTLE_KEY); } catch(e) {}
-      setTimeout(() => {
-        if (!_destroyed) _callbacks.onComplete?.(matchUpdate);
-      }, 50);
+      _finish(matchUpdate);
+      return;
     }
   });
-
-  // Also poll once on init in case match already completed before we loaded
-  _pollForOpponentDone(matchId);
 }
 
-async function _pollForOpponentDone(matchId) {
-  if (_destroyed || _completed) return;
-  try {
-    const match = await getMatchResult(matchId);
-    if (!match || _destroyed || _completed) return;
-    if (match.status === 'completed') {
-      _completed = true;
-      _cleanup();
-      try { localStorage.removeItem(PENDING_BATTLE_KEY); } catch(e) {}
-      setTimeout(() => {
-        if (!_destroyed) _callbacks.onComplete?.(match);
-      }, 100);
-    }
-  } catch (e) {
-    console.warn('[Battle] Poll error:', e.message);
-  }
+function _finish(match) {
+  if (_completed) return;
+  _completed = true;
+
+  if (_timer) { clearInterval(_timer); _timer = null; }
+  _submitting = false;
+
+  try { localStorage.removeItem(PENDING_BATTLE_KEY); } catch(e) {}
+
+  // Small delay to let UI settle
+  setTimeout(() => {
+    if (!_destroyed) _callbacks.onComplete?.(match);
+  }, 100);
 }
 
 function _wire(id, fn) {
@@ -211,8 +191,8 @@ function _startTimer() {
 
 // ============================================
 // SUBMIT
-// FIX B: Listener stays alive — no unsub gap.
-// FIX C: Polling loop instead of single re-read.
+// Writes score + done. Trigger closes match.
+// Listener stays alive — onSnapshot fires → _finish()
 // ============================================
 
 async function _submit(autoSubmit = false) {
@@ -220,7 +200,6 @@ async function _submit(autoSubmit = false) {
   _submitting = true;
 
   if (_timer) { clearInterval(_timer); _timer = null; }
-  // FIX B: DO NOT call _matchUnsub() here. Keep listener alive.
 
   const btn = el('battle-submit-btn');
   if (btn) {
@@ -228,90 +207,25 @@ async function _submit(autoSubmit = false) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
   }
 
-  // Fill unanswered questions with null
   const answers = {};
   _questions.forEach((_, i) => {
     answers[i] = _answers[i] !== undefined ? _answers[i] : null;
   });
 
   try {
-    const result = await submitBattleAnswers(_matchId, answers);
-
-    if (result?.bothDone) {
-      _completed = true;
-      _cleanup();
-      try { localStorage.removeItem(PENDING_BATTLE_KEY); } catch(e) {}
-      const match = await getMatchResult(_matchId);
-      setTimeout(() => {
-        if (!_destroyed) _callbacks.onComplete?.(match);
-      }, 50);
-      return;
-    }
-
-    // FIX C: Guaranteed re-read loop with exponential back-off
-    // Poll for up to 30 seconds instead of a single read
-    const found = await _pollUntilCompleted(_matchId, 30000);
-
-    if (found) {
-      // onComplete already fired via onSnapshot or _pollUntilCompleted
-      return;
-    }
-
-    // Genuinely waiting — show overlay. Listener is still alive.
+    await submitBattleAnswers(_matchId, answers);
+    // Done writing. Now we wait for the onWrite trigger to set status: 'completed'.
+    // The onSnapshot listener (alive since init) will catch it and call _finish().
     _showWaiting();
-
-  } catch(err) {
+  } catch (err) {
     console.error('[Battle] Submit error:', err);
     _submitting = false;
-    // Even on error, keep listener alive and show waiting
     _showWaiting();
   }
-}
-
-// ============================================
-// FIX C: Poll until completed or timeout
-// Exponential back-off: 250ms → 500ms → 1000ms → 2000ms (cap)
-// ============================================
-
-async function _pollUntilCompleted(matchId, timeoutMs = 30000) {
-  const start = Date.now();
-  let delay   = 250;
-
-  while (Date.now() - start < timeoutMs) {
-    if (_destroyed || _completed) return true;
-
-    try {
-      const match = await getMatchResult(matchId);
-      if (match?.status === 'completed') {
-        if (!_completed) {
-          _completed = true;
-          _cleanup();
-          try { localStorage.removeItem(PENDING_BATTLE_KEY); } catch(e) {}
-          setTimeout(() => {
-            if (!_destroyed) _callbacks.onComplete?.(match);
-          }, 50);
-        }
-        return true;
-      }
-    } catch (e) {
-      console.warn('[Battle] Poll tick error:', e.message);
-    }
-
-    await _sleep(delay);
-    delay = Math.min(delay * 2, 2000);  // exponential cap at 2s
-  }
-
-  return false;  // timeout reached
-}
-
-function _sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
 }
 
 // ============================================
 // WAITING OVERLAY
-// Listener stays alive; onSnapshot will fire
-// when opponent finishes.
 // ============================================
 
 function _showWaiting() {
@@ -342,18 +256,6 @@ function _showWaiting() {
     style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
     document.head.appendChild(style);
   }
-
-  // NOTE: _matchUnsub is STILL active from init. No need to re-subscribe.
-  // onSnapshot will call onComplete when opponent finishes.
-}
-
-// ============================================
-// CLEANUP HELPERS
-// ============================================
-
-function _cleanup() {
-  if (_timer) { clearInterval(_timer); _timer = null; }
-  _submitting = false;
 }
 
 // ============================================
