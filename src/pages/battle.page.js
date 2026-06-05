@@ -1,28 +1,25 @@
 // ============================================
 // SCRIPTUREQUEST V4 — Battle Page
-// Fixes applied in this version:
+// FIXES IN THIS VERSION:
 //
-//   FIX A — "both submitted, stuck on waiting":
-//     After submitBattleAnswers resolves with bothDone:false, we immediately
-//     re-read the match doc once. If the transaction from the OTHER player
-//     has already marked it 'completed', we fire onComplete right away instead
-//     of entering the waiting state. This covers the ~100ms window where both
-//     transactions succeed near-simultaneously and the local result says
-//     bothDone:false but Firestore already has status:'completed'.
+//   FIX A — CF failure fallback:
+//     submitBattleAnswers calls the completeBattle
+//     Cloud Function, but if it fails with CORS or
+//     an internal error, we now fall back to writing
+//     answers directly to Firestore. The onSnapshot
+//     listener then picks up the completion naturally.
+//     This fixes "no result shown after battle" when
+//     the CF is unreachable.
 //
-//   FIX B — FAB visibility managed centrally in app.js; battle.page only
-//     calls destroyBattleScreen cleanly (unchanged from v4, kept here for ref).
+//   FIX B — Both submitted stuck:
+//     After submitBattleAnswers resolves with
+//     bothDone:false, we re-read the doc once to catch
+//     the race where the other player's transaction
+//     already closed it. (Unchanged from v4, kept.)
 //
-//   FIX C — _pollForOpponentDone now also catches the case where the match
-//     is already 'completed' before this player even starts (i.e. opponent
-//     submitted before this user accepted and launched the battle screen).
-//
-//   Retained from v4:
-//     - Timer uses BATTLE_DURATION_SECS (2:50)
-//     - Persists matchId to localStorage via PENDING_BATTLE_KEY
-//     - Robust destroyBattleScreen with _destroyed guard
-//     - Waiting overlay (not innerHTML replacement)
-//     - No correct answer revealed on wrong pick
+//   FIX C — Already completed before load:
+//     _pollForOpponentDone catches matches already
+//     completed before this player opened the screen.
 // ============================================
 
 import { submitBattleAnswers, listenToMatch, getMatchResult } from '../services/match.service.js';
@@ -80,30 +77,21 @@ export async function initBattleScreen(matchId, questions, match, callbacks) {
   renderQuestion();
   _startTimer();
 
-  // Subscribe to match updates — auto-submit if opponent finishes first
   _matchUnsub = listenToMatch(matchId, matchUpdate => {
     if (_destroyed || _submitting) return;
     if (matchUpdate.status === 'completed') {
-      // Opponent finished and their transaction closed the match — submit ours
       _submit(true);
     }
   });
 
-  // Check if match is already completed (e.g. opponent submitted before we even loaded)
   _pollForOpponentDone(matchId);
 }
 
-// Re-read the doc once on init. If the match is already completed (opponent
-// submitted before this player's battle screen even loaded), fire auto-submit
-// immediately so this player doesn't sit on a blank quiz.
 async function _pollForOpponentDone(matchId) {
   try {
     const match = await getMatchResult(matchId);
     if (!match || _destroyed || _submitting) return;
     if (match.status === 'completed') {
-      // The transaction from the other player already closed this match.
-      // Our submission will hit the 'alreadyCompleted' guard in the service
-      // and return the cached result, then we navigate to battle-result.
       setTimeout(() => _submit(true), 100);
     }
   } catch (e) {
@@ -131,7 +119,6 @@ function renderQuestion() {
   if (el('battle-q-chip'))    el('battle-q-chip').textContent    = `Question ${_current + 1} of ${_questions.length}`;
   if (el('battle-q-text'))    el('battle-q-text').textContent    = q.question;
   if (el('battle-progress'))  el('battle-progress').style.width  = `${((_current + 1) / _questions.length) * 100}%`;
-  if (el('battle-prog-fill')) el('battle-prog-fill').style.width = `${((_current + 1) / _questions.length) * 100}%`;
 
   const optEl = el('battle-options');
   if (optEl) {
@@ -161,7 +148,6 @@ function _selectAnswer(idx) {
   if (_submitting || _answers[_current] !== undefined) return;
   _answers[_current] = idx;
 
-  // Colour only the chosen button — never reveal the correct answer
   const q = _questions[_current];
   el('battle-options')?.querySelectorAll('.option').forEach((b, i) => {
     b.disabled = true;
@@ -175,12 +161,12 @@ function _selectAnswer(idx) {
 function _updateNav() {
   const isLast      = _current === _questions.length - 1;
   const allAnswered = Object.keys(_answers).length === _questions.length;
-  const answered    = _answers[_current] !== undefined;
 
-  if (el('battle-prev-btn'))   el('battle-prev-btn').disabled = _current === 0;
+  if (el('battle-prev-btn')) el('battle-prev-btn').disabled = _current === 0;
   el('battle-next-btn')?.classList.toggle('hidden',   isLast);
   el('battle-submit-btn')?.classList.toggle('hidden', !isLast && !allAnswered);
-  if (el('battle-next-btn') && !isLast) el('battle-next-btn').disabled = !answered;
+  if (el('battle-next-btn') && !isLast)
+    el('battle-next-btn').disabled = _answers[_current] === undefined;
 }
 
 function nextQ() { if (_current < _questions.length - 1) { _current++; renderQuestion(); } }
@@ -207,27 +193,41 @@ function _startTimer() {
 
 // ============================================
 // SUBMIT
+// FIX A: CF failure → direct Firestore fallback
 // ============================================
 
 async function _submit(autoSubmit = false) {
   if (_submitting || _destroyed) return;
   _submitting = true;
 
-  if (_timer)     { clearInterval(_timer);  _timer = null; }
-  if (_matchUnsub){ _matchUnsub(); _matchUnsub = null; }
+  if (_timer)      { clearInterval(_timer);  _timer = null; }
+  if (_matchUnsub) { _matchUnsub(); _matchUnsub = null; }
 
   const btn = el('battle-submit-btn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…'; }
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+  }
 
   // Fill unanswered questions with null
   const answers = {};
-  _questions.forEach((_, i) => { answers[i] = _answers[i] !== undefined ? _answers[i] : null; });
+  _questions.forEach((_, i) => {
+    answers[i] = _answers[i] !== undefined ? _answers[i] : null;
+  });
 
   try {
-    const result = await submitBattleAnswers(_matchId, answers);
+    // ── Attempt 1: Cloud Function via match.service ──
+    let result = null;
+    try {
+      result = await submitBattleAnswers(_matchId, answers);
+    } catch (cfErr) {
+      console.warn('[Battle] CF submit failed, trying Firestore fallback:', cfErr.message);
+      // ── FIX A: Direct Firestore fallback ──
+      // Write answers directly; the CF or onSnapshot will complete the match
+      result = await _submitDirectToFirestore(_matchId, answers);
+    }
 
-    if (result.bothDone) {
-      // Transaction resolved both players — fetch the final doc and navigate
+    if (result?.bothDone) {
       const match = await getMatchResult(_matchId);
       try { localStorage.removeItem(PENDING_BATTLE_KEY); } catch(e) {}
       setTimeout(() => {
@@ -236,22 +236,11 @@ async function _submit(autoSubmit = false) {
       return;
     }
 
-    // ── FIX A ──────────────────────────────────────────────────────────────
-    // bothDone was false in our transaction, but the OTHER player's transaction
-    // may have fired concurrently and already written status:'completed'.
-    // Re-read the doc once to confirm the definitive state before showing
-    // the waiting overlay.
-    // ───────────────────────────────────────────────────────────────────────
+    // Re-read once — other player may have already completed it
     let definitiveMatch = null;
-    try {
-      definitiveMatch = await getMatchResult(_matchId);
-    } catch(e) {
-      console.warn('[Battle] Re-read after submit failed (non-fatal):', e.message);
-    }
+    try { definitiveMatch = await getMatchResult(_matchId); } catch(e) {}
 
     if (definitiveMatch?.status === 'completed') {
-      // The other player's transaction closed it between our read and our write.
-      // Navigate directly to results.
       try { localStorage.removeItem(PENDING_BATTLE_KEY); } catch(e) {}
       setTimeout(() => {
         if (!_destroyed) _callbacks.onComplete?.(definitiveMatch);
@@ -259,20 +248,102 @@ async function _submit(autoSubmit = false) {
       return;
     }
 
-    // Genuinely waiting for the opponent — show overlay and subscribe
+    // Genuinely waiting — show overlay
     _showWaiting();
 
   } catch(err) {
     console.error('[Battle] Submit error:', err);
     _submitting = false;
-    // Show waiting rather than hanging — Firestore listener will catch completion
     _showWaiting();
   }
 }
 
+// ============================================
+// FIX A: Direct Firestore answer write
+// Used when completeBattle CF is unreachable.
+// Writes the player's answers + score to the
+// match doc. The opponent's equivalent write
+// will trigger the onSnapshot to show results.
+// ============================================
+
+async function _submitDirectToFirestore(matchId, answers) {
+  const user = getCurrentUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { doc, getDoc, updateDoc, serverTimestamp } =
+    await import('firebase/firestore');
+  const { db } = await import('./firebase/config.js');
+
+  const matchRef  = doc(db, 'matches', matchId);
+  const matchSnap = await getDoc(matchRef);
+  if (!matchSnap.exists()) throw new Error('Match not found');
+
+  const match     = matchSnap.data();
+  const questions = match.questions || [];
+  const isCreator = match.creatorId === user.uid;
+
+  // Calculate score
+  let correct = 0;
+  questions.forEach((q, i) => {
+    if (answers[i] !== null && answers[i] === q.correctAnswer) correct++;
+  });
+  const total = questions.length || 15;
+  const pct   = Math.round((correct / total) * 100);
+
+  const updateData = isCreator
+    ? {
+        creatorAnswers:  answers,
+        creatorScore:    correct,
+        creatorPct:      pct,
+        creatorDone:     true,
+        creatorDoneAt:   serverTimestamp()
+      }
+    : {
+        opponentAnswers: answers,
+        opponentScore:   correct,
+        opponentPct:     pct,
+        opponentDone:    true,
+        opponentDoneAt:  serverTimestamp()
+      };
+
+  await updateDoc(matchRef, updateData);
+
+  // Re-read to check if both are now done
+  const updatedSnap = await getDoc(matchRef);
+  const updated     = updatedSnap.data();
+  const bothDone    = updated.creatorDone && updated.opponentDone;
+
+  // If both done, determine winner and mark completed
+  if (bothDone) {
+    const creatorPct  = updated.creatorPct  ?? 0;
+    const opponentPct = updated.opponentPct ?? 0;
+    let winnerId;
+    if (creatorPct > opponentPct)       winnerId = updated.creatorId;
+    else if (opponentPct > creatorPct)  winnerId = updated.opponentId;
+    else                                winnerId = 'draw';
+
+    await updateDoc(matchRef, {
+      status:      'completed',
+      winnerId,
+      completedAt: serverTimestamp()
+    });
+
+    return { bothDone: true };
+  }
+
+  // Mark match active if it was still pending/waiting
+  if (match.status === 'pending' || match.status === 'waiting') {
+    await updateDoc(matchRef, { status: 'active' }).catch(() => {});
+  }
+
+  return { bothDone: false };
+}
+
+// ============================================
+// WAITING OVERLAY
+// ============================================
+
 function _showWaiting() {
-  // Use an overlay so the screen-battle container stays intact (avoids blank-screen
-  // race when app.js calls showScreen('battle-result') inside onComplete).
   const screen = el('screen-battle');
   if (!screen) return;
 
@@ -290,11 +361,18 @@ function _showWaiting() {
   overlay.innerHTML = `
     <div style="max-width:480px;text-align:center;padding:40px 20px">
       <div style="font-size:64px;margin-bottom:16px">⏳</div>
-      <h2 style="font-size:22px;font-weight:900;color:var(--text-primary);margin-bottom:8px">Answers Submitted!</h2>
-      <p style="color:var(--text-muted);font-size:15px;margin-bottom:8px">Waiting for your opponent to finish…</p>
-      <div class="spinner" style="margin:20px auto;width:40px;height:40px;border:4px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite"></div>
+      <h2 style="font-size:22px;font-weight:900;color:var(--text-primary);margin-bottom:8px">
+        Answers Submitted!
+      </h2>
+      <p style="color:var(--text-muted);font-size:15px;margin-bottom:8px">
+        Waiting for your opponent to finish…
+      </p>
+      <div class="spinner" style="margin:20px auto;width:40px;height:40px;
+           border:4px solid var(--border);border-top-color:var(--accent-primary);
+           border-radius:50%;animation:spin 1s linear infinite"></div>
       <p style="font-size:13px;color:var(--text-muted);margin-top:8px">
-        You can safely close this page.<br>We'll show results next time you open the app. 📱
+        You can safely close this page.<br>
+        We'll show results next time you open the app. 📱
       </p>
     </div>`;
   screen.appendChild(overlay);
