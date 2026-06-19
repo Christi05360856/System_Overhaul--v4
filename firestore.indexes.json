@@ -32,6 +32,22 @@
         { "fieldPath": "userId",    "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "pathQuestions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "roundId",  "order": "ASCENDING" },
+        { "fieldPath": "order",    "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pathQuestions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "bookCode",       "order": "ASCENDING" },
+        { "fieldPath": "difficultyLevel","order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
