@@ -53,6 +53,12 @@ service cloud.firestore {
       allow write: if isOwner(uid) || isAdmin();
     }
 
+    // ── USER PROGRESS (Learning Path — NEW v5) ──
+    match /userProgress/{uid} {
+      allow read:  if isOwner(uid) || isAdmin();
+      allow write: if isOwner(uid) || isAdmin();
+    }
+
     // ── QUIZ SESSIONS ──
     match /quizSessions/{sessionId} {
       allow read:   if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
@@ -99,7 +105,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ── QUESTIONS ──
+    // ── QUESTIONS (Daily Challenge pool) ──
     match /questions/{questionId} {
       allow read:  if true;
       allow write: if isAdmin();
@@ -108,6 +114,30 @@ service cloud.firestore {
         allow read:  if isAdmin();
         allow write: if isAuth();
       }
+    }
+
+    // ── PATH QUESTIONS (Learning Path pool — NEW v5) ──
+    match /pathQuestions/{questionId} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+
+    // ── PATH STRUCTURE (sections/units/lessons/rounds — NEW v5, admin-managed) ──
+    match /sections/{sectionId} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+    match /units/{unitId} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+    match /lessons/{lessonId} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+    match /rounds/{roundId} {
+      allow read:  if true;
+      allow write: if isAdmin();
     }
 
     // ── NOTIFICATIONS ──
@@ -138,15 +168,10 @@ service cloud.firestore {
 
     // ── MATCHES (challenge system) ──
     match /matches/{matchId} {
-      // Any authenticated user can read (needed for code-lookup queries)
       allow read: if isAuth() || isAdmin();
 
-      // CREATE: must be the creator
       allow create: if isAuth() && request.resource.data.creatorId == request.auth.uid;
 
-      // UPDATE: creator, opponent, admin, OR any auth user joining a waiting match.
-      // FIX: also allows the battle.page.js Firestore fallback to write
-      // creatorDone/opponentDone/status fields when the Cloud Function is unreachable.
       allow update: if isAdmin() || (
         isAuth() && (
           resource.data.creatorId  == request.auth.uid ||
@@ -160,25 +185,12 @@ service cloud.firestore {
     }
 
     // ── PRESENCE ──
-    // FIX: was missing entirely — caused "[Presence] Write error: Missing or
-    // insufficient permissions" on every login, breaking the leaderboard dots
-    // and making all ⚔️ challenge buttons stay permanently disabled.
-    //
-    // Any logged-in user writes ONLY their own presence doc.
-    // Any logged-in user can READ all presence docs (needed to show green dots
-    // next to other players on the leaderboard).
     match /presence/{uid} {
       allow read:  if isAuth();
       allow write: if isOwner(uid);
     }
 
     // ── INCOMING CHALLENGES ──
-    // FIX: was missing entirely — caused "[Challenge] Incoming listener error:
-    // Missing or insufficient permissions", so direct challenges from the
-    // leaderboard ⚔️ button never reached the target user.
-    //
-    // Any logged-in user can WRITE to another user's inbox (to send a challenge).
-    // A user can only READ and DELETE their OWN inbox doc.
     match /incomingChallenges/{targetUid} {
       allow read, delete: if isOwner(targetUid);
       allow write:        if isAuth();
