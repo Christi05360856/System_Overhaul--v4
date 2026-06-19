@@ -14,16 +14,16 @@
 // ── THE PENTATEUCH ──────────────────────────
 import { genesis }         from './genesis.js';
 import { exodus }        from './exodus.js';
-// import { leviticus }     from './leviticus.js';
-// import { numbers }       from './numbers.js';
-// import { deuteronomy }   from './deuteronomy.js';
+import { leviticus }     from './leviticus.js';
+import { numbers }       from './numbers.js';
+import { deuteronomy }   from './deuteronomy.js';
 
 // ── HISTORICAL BOOKS ────────────────────────
-// import { joshua }        from './joshua.js';
-// import { judges }        from './judges.js';
-// import { ruth }          from './ruth.js';
-// import { samuel1 }       from './samuel1.js';
-// import { samuel2 }       from './samuel2.js';
+import { joshua }        from './joshua.js';
+import { judges }        from './judges.js';
+import { ruth }          from './ruth.js';
+import { samuel1 }       from './samuel1.js';
+import { samuel2 }       from './samuel2.js';
 // import { kings1 }        from './kings1.js';
 // import { kings2 }        from './kings2.js';
 // import { chronicles1 }   from './chronicles1.js';
@@ -104,16 +104,16 @@ export const learningPath = {
   // ── THE PENTATEUCH ──
   ...genesis,
   ...exodus,
-  // ...leviticus,
-  // ...numbers,
-  // ...deuteronomy,
+  ...leviticus,
+  ...numbers,
+  ...deuteronomy,
 
   // ── HISTORICAL BOOKS ──
-  // ...joshua,
-  // ...judges,
-  // ...ruth,
-  // ...samuel1,
-  // ...samuel2,
+  ...joshua,
+  ...judges,
+  ...ruth,
+  ...samuel1,
+  ...samuel2,
   // ...kings1,
   // ...kings2,
   // ...chronicles1,
