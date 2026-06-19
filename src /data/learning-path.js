@@ -13,7 +13,7 @@
 
 // ── THE PENTATEUCH ──────────────────────────
 import { genesis }         from './genesis.js';
-// import { exodus }        from './exodus.js';
+import { exodus }        from './exodus.js';
 // import { leviticus }     from './leviticus.js';
 // import { numbers }       from './numbers.js';
 // import { deuteronomy }   from './deuteronomy.js';
@@ -103,7 +103,7 @@ export const learningPath = {
 
   // ── THE PENTATEUCH ──
   ...genesis,
-  // ...exodus,
+  ...exodus,
   // ...leviticus,
   // ...numbers,
   // ...deuteronomy,
