@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="/styles/variables.css" />
   <link rel="stylesheet" href="/styles/base.css" />
   <link rel="stylesheet" href="/styles/components.css" />
+  <link rel="stylesheet" href="/styles/path.css" />
   <title>ScriptureQuest — Daily Bible Quiz</title>
 </head>
 <body>
@@ -102,6 +103,354 @@
       <p class="card-footer">ScriptureQuest v4 • Bible Quiz Platform</p>
     </div>
   </div>
+
+
+<!-- ══ SCREEN: PATH (Learning Path — new home screen) ══ -->
+<div id="screen-path" class="screen hidden">
+  <div class="path-screen-wrap">
+ 
+    <!-- Path header bar -->
+    <div class="path-header">
+      <div class="path-header-left">
+        <span class="path-logo">📖</span>
+        <div class="path-header-titles">
+          <h1 class="path-header-title">ScriptureQuest</h1>
+          <p class="path-header-sub" id="path-header-sub">Learning Path</p>
+        </div>
+      </div>
+      <div class="path-header-right">
+        <button class="path-xp-chip" id="path-xp-chip" aria-label="Your path XP">
+          <span class="path-xp-icon">✨</span>
+          <span id="path-xp-value">0</span>
+          <span class="path-xp-label">XP</span>
+        </button>
+        <button class="path-avatar-btn" id="path-avatar-btn"
+                onclick="SQ.showScreen('profile')" aria-label="Go to profile">
+          <div class="path-avatar-circle" id="path-header-avatar"></div>
+        </button>
+      </div>
+    </div>
+ 
+    <!-- Section progress summary strip -->
+    <div class="path-progress-strip" id="path-progress-strip">
+      <div class="path-progress-inner">
+        <span class="path-section-label" id="path-current-section-label">Section 1 — The Pentateuch</span>
+        <span class="path-section-pct"   id="path-current-section-pct">0%</span>
+      </div>
+      <div class="path-progress-track">
+        <div class="path-progress-fill" id="path-section-progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+ 
+    <!-- Scrollable path content -->
+    <div class="path-scroll-area" id="path-scroll-area">
+ 
+      <!-- Skeleton shown while loading -->
+      <div id="path-skeleton" class="path-skeleton-wrap">
+        <div class="path-skeleton-section">
+          <div class="skeleton path-skeleton-section-header"></div>
+          <div class="path-skeleton-nodes">
+            <div class="skeleton path-skeleton-node"></div>
+            <div class="skeleton path-skeleton-node"></div>
+            <div class="skeleton path-skeleton-node"></div>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- Real path rendered by path.page.js -->
+      <div id="path-content" class="hidden"></div>
+ 
+    </div><!-- /.path-scroll-area -->
+ 
+    <!-- Auth prompt (shown when logged out) -->
+    <div id="path-auth-prompt" class="path-auth-prompt hidden">
+      <div class="path-auth-card">
+        <span style="font-size:64px;display:block;margin-bottom:16px">📖</span>
+        <h2>ScriptureQuest</h2>
+        <p>Master every book of the Bible — one passage at a time.</p>
+        <button class="btn-primary btn-full btn-lg" style="margin-top:20px"
+                onclick="SQ.openAuthModal()">
+          <i class="fas fa-sign-in-alt"></i> Sign In to Begin
+        </button>
+      </div>
+    </div>
+ 
+  </div><!-- /.path-screen-wrap -->
+</div>
+ 
+<!-- ══ SCREEN: STUDY CARD (shown before each round) ══ -->
+<div id="screen-study" class="screen hidden">
+  <div class="study-wrap">
+ 
+    <div class="study-top-bar">
+      <button class="study-back-btn" id="study-back-btn" aria-label="Go back">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <div class="study-top-meta">
+        <span class="study-passage-chip" id="study-passage-chip">Genesis 1:1-19</span>
+      </div>
+      <button class="study-theme-btn" id="study-theme-btn" aria-label="Toggle theme">🌙</button>
+    </div>
+ 
+    <div class="study-scroll-area">
+      <div class="study-card-inner">
+ 
+        <!-- Hook -->
+        <div class="study-hook-block">
+          <span class="study-hook-label">🔍 Did you know?</span>
+          <p class="study-hook-text" id="study-hook"></p>
+        </div>
+ 
+        <!-- Title + lesson info -->
+        <div class="study-title-block">
+          <h2 class="study-card-title"   id="study-card-title">—</h2>
+          <p  class="study-lesson-label" id="study-lesson-label">—</p>
+        </div>
+ 
+        <!-- Teaching body -->
+        <div class="study-teaching-body" id="study-teaching-body">
+          <!-- Paragraphs injected by study.page.js -->
+        </div>
+ 
+        <!-- Key verse -->
+        <div class="study-key-verse-block">
+          <span class="study-key-verse-label">📖 Key Verse</span>
+          <blockquote class="study-key-verse-text" id="study-key-verse"></blockquote>
+        </div>
+ 
+        <!-- Memory prompt -->
+        <div class="study-memory-block">
+          <span class="study-memory-label">🧠 Remember This</span>
+          <p class="study-memory-text" id="study-memory-prompt"></p>
+        </div>
+ 
+        <!-- Challenge fact -->
+        <div class="study-fact-block">
+          <span class="study-fact-label">💡 Challenge Fact</span>
+          <p class="study-fact-text" id="study-challenge-fact"></p>
+        </div>
+ 
+        <!-- Spacer so begin button doesn't overlap content -->
+        <div style="height: 100px"></div>
+ 
+      </div>
+    </div><!-- /.study-scroll-area -->
+ 
+    <!-- Sticky begin button -->
+    <div class="study-begin-bar">
+      <div class="study-begin-bar-inner">
+        <div class="study-round-info">
+          <span class="study-round-label" id="study-round-label">Round A · 7 Questions</span>
+          <span class="study-difficulty-chip" id="study-difficulty-chip">Hard → Expert</span>
+        </div>
+        <button class="btn-primary btn-full study-begin-btn" id="study-begin-btn">
+          Begin Round <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+ 
+  </div><!-- /.study-wrap -->
+</div>
+ 
+<!-- ══ SCREEN: ROUND QUIZ (learning path — no timer) ══ -->
+<div id="screen-round" class="screen hidden">
+  <div class="quiz-wrapper">
+ 
+    <div class="top-bar round-top-bar">
+      <div class="round-top-left">
+        <button class="round-quit-top" id="round-quit-top" aria-label="Quit round">
+          <i class="fas fa-times"></i>
+        </button>
+        <span class="round-passage-label" id="round-passage-label">Genesis 1:1-19</span>
+      </div>
+      <div class="top-bar-actions">
+        <span class="round-progress-chip" id="round-q-chip">1 / 7</span>
+      </div>
+    </div>
+ 
+    <div class="quiz-progress-strip">
+      <div class="quiz-progress-fill" id="round-progress-fill" style="width:0%"></div>
+    </div>
+ 
+    <div class="card question-card" id="round-question-card">
+      <div class="round-difficulty-row">
+        <span class="round-difficulty-badge" id="round-difficulty-badge">HARD</span>
+        <span class="round-q-type-label"     id="round-q-type-label">Who</span>
+      </div>
+      <p class="question-text" id="round-question-text">Loading question…</p>
+      <div class="options-list" id="round-options-list" role="list"></div>
+      <div id="round-feedback-area" class="feedback-area hidden" aria-live="polite"></div>
+    </div>
+ 
+    <div class="nav-controls">
+      <button id="round-prev-btn" class="btn-secondary" disabled>
+        <i class="fas fa-chevron-left"></i> Prev
+      </button>
+      <button id="round-next-btn" class="btn-primary">
+        Next <i class="fas fa-chevron-right"></i>
+      </button>
+      <button id="round-submit-btn" class="btn-primary hidden">
+        <i class="fas fa-paper-plane"></i> Submit
+      </button>
+    </div>
+ 
+    <!-- Question dot nav -->
+    <div class="round-dot-nav" id="round-dot-nav" aria-label="Question progress"></div>
+ 
+  </div>
+</div>
+ 
+<!-- ══ SCREEN: ROUND RESULT ══ -->
+<div id="screen-round-result" class="screen center hidden">
+  <div class="card round-result-card">
+ 
+    <div class="round-result-header">
+      <span class="round-result-icon" id="round-result-icon">🎉</span>
+      <h2 class="round-result-title" id="round-result-title">Round Complete!</h2>
+      <p class="round-result-passage" id="round-result-passage">Genesis 1:1-19</p>
+    </div>
+ 
+    <!-- Score ring -->
+    <div class="round-score-ring-wrap">
+      <svg class="round-score-ring" viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="ring-track" cx="60" cy="60" r="50" />
+        <circle class="ring-fill"  cx="60" cy="60" r="50" id="round-ring-fill" />
+      </svg>
+      <div class="round-score-center">
+        <div class="round-score-pct"    id="round-result-pct">0%</div>
+        <div class="round-score-detail" id="round-result-detail">0/7</div>
+      </div>
+    </div>
+ 
+    <!-- Pass / fail badge -->
+    <div class="round-pass-badge" id="round-pass-badge">
+      <span id="round-pass-text">—</span>
+    </div>
+ 
+    <!-- XP earned -->
+    <div class="round-xp-row">
+      <span class="round-xp-icon">✨</span>
+      <span class="round-xp-amount" id="round-xp-earned">+0 XP</span>
+      <span class="round-xp-label">earned this round</span>
+    </div>
+ 
+    <!-- Per-question summary strip (right/wrong dots, no answers) -->
+    <div class="round-q-summary" id="round-q-summary" aria-label="Question results"></div>
+ 
+    <!-- Celebration message (lesson/unit/section complete) -->
+    <div id="round-celebration-block" class="round-celebration-block hidden">
+      <span class="round-celebration-icon" id="round-celebration-icon">🏅</span>
+      <p class="round-celebration-msg"  id="round-celebration-msg">Lesson complete!</p>
+      <span class="round-celebration-xp" id="round-celebration-xp">+100 XP</span>
+    </div>
+ 
+    <!-- Action buttons -->
+    <div class="round-result-actions">
+      <!-- Shown when passed -->
+      <div id="round-pass-actions" class="hidden">
+        <button id="round-next-round-btn" class="btn-primary btn-full round-next-btn">
+          Next Round <i class="fas fa-arrow-right"></i>
+        </button>
+        <button id="round-back-path-btn" class="btn-ghost btn-full btn-sm"
+                style="color:var(--text-muted);margin-top:8px">
+          <i class="fas fa-map"></i> Back to Path
+        </button>
+      </div>
+      <!-- Shown when failed -->
+      <div id="round-fail-actions" class="hidden">
+        <button id="round-study-again-btn" class="btn-secondary btn-full">
+          <i class="fas fa-book-open"></i> Study Again
+        </button>
+        <button id="round-retry-btn" class="btn-primary btn-full" style="margin-top:8px">
+          <i class="fas fa-redo"></i> Retry Round
+        </button>
+        <button id="round-fail-back-btn" class="btn-ghost btn-full btn-sm"
+                style="color:var(--text-muted);margin-top:8px">
+          <i class="fas fa-map"></i> Back to Path
+        </button>
+      </div>
+    </div>
+ 
+  </div>
+</div>
+ 
+<!-- ══ SCREEN: LESSON COMPLETE ══ -->
+<div id="screen-lesson-complete" class="screen center hidden">
+  <div class="card celebrate-card">
+    <div class="celebrate-confetti" aria-hidden="true">🎊</div>
+    <span class="celebrate-icon">🏅</span>
+    <h2 class="celebrate-title" id="lesson-complete-title">Lesson Complete!</h2>
+    <p  class="celebrate-sub"   id="lesson-complete-sub">Genesis 1:1-19</p>
+    <div class="celebrate-xp-chip">
+      <span>✨</span>
+      <span id="lesson-complete-xp">+100 XP</span>
+    </div>
+    <div class="celebrate-divider"></div>
+    <p class="celebrate-body" id="lesson-complete-body">
+      You've mastered this chapter group. Keep going!
+    </p>
+    <button id="lesson-next-btn" class="btn-primary btn-full celebrate-btn">
+      Next Lesson <i class="fas fa-arrow-right"></i>
+    </button>
+    <button id="lesson-back-path-btn" class="btn-ghost btn-full btn-sm celebrate-btn-sm">
+      <i class="fas fa-map"></i> Back to Path
+    </button>
+  </div>
+</div>
+ 
+<!-- ══ SCREEN: UNIT COMPLETE ══ -->
+<div id="screen-unit-complete" class="screen center hidden">
+  <div class="card celebrate-card celebrate-card--unit">
+    <div class="celebrate-confetti" aria-hidden="true">🎉</div>
+    <span class="celebrate-icon">📚</span>
+    <h2 class="celebrate-title" id="unit-complete-title">Book Complete!</h2>
+    <p  class="celebrate-sub"   id="unit-complete-book">Genesis</p>
+    <div class="celebrate-xp-chip celebrate-xp-chip--big">
+      <span>✨</span>
+      <span id="unit-complete-xp">+200 XP</span>
+    </div>
+    <div class="celebrate-divider"></div>
+    <p class="celebrate-body" id="unit-complete-body">
+      You've completed every lesson in this book. Outstanding work!
+    </p>
+    <button id="unit-next-btn" class="btn-primary btn-full celebrate-btn">
+      Next Unit <i class="fas fa-arrow-right"></i>
+    </button>
+    <button id="unit-back-path-btn" class="btn-ghost btn-full btn-sm celebrate-btn-sm">
+      <i class="fas fa-map"></i> Back to Path
+    </button>
+  </div>
+</div>
+ 
+<!-- ══ SCREEN: SECTION COMPLETE ══ -->
+<div id="screen-section-complete" class="screen center hidden">
+  <div class="card celebrate-card celebrate-card--section">
+    <div class="celebrate-confetti" aria-hidden="true">🌟</div>
+    <span class="celebrate-icon">🏆</span>
+    <h2 class="celebrate-title" id="section-complete-title">Section Complete!</h2>
+    <p  class="celebrate-sub"   id="section-complete-name">The Pentateuch</p>
+    <div class="celebrate-xp-chip celebrate-xp-chip--section">
+      <span>✨</span>
+      <span id="section-complete-xp">+1000 XP</span>
+    </div>
+    <div class="celebrate-divider"></div>
+    <p class="celebrate-body" id="section-complete-body">
+      You've mastered an entire division of the Bible. This is serious achievement.
+    </p>
+    <div class="section-cert-block" id="section-cert-block">
+      <span class="section-cert-label">Section Certificate</span>
+      <span class="section-cert-name" id="section-cert-name">The Pentateuch</span>
+    </div>
+    <button id="section-next-btn" class="btn-primary btn-full celebrate-btn">
+      Begin Next Section <i class="fas fa-arrow-right"></i>
+    </button>
+    <button id="section-back-path-btn" class="btn-ghost btn-full btn-sm celebrate-btn-sm">
+      <i class="fas fa-map"></i> Back to Path
+    </button>
+  </div>
+</div>
+ 
+
     <!-- ══ SCREEN: QUIZ ══ -->
   <div id="screen-quiz" class="screen hidden">
     <div class="quiz-wrapper">
@@ -488,7 +837,7 @@
           <div class="settings-row-icon purple">📋</div>
           <div class="settings-row-text">
             <div class="settings-row-title">App Version</div>
-            <div class="settings-row-sub">v4.0 — ScriptureQuest Overhaul</div>
+            <div class="settings-row-sub"> v2.0 — Learning Path Edition</div>
           </div>
         </div>
       </div>
@@ -508,14 +857,26 @@
 
     </div>
   </div>
-  <!-- ══ BOTTOM NAV ══ -->
-  <nav id="bottom-nav" class="bottom-nav hidden" aria-label="Main navigation">
-    <button class="nav-item active" data-screen="landing"     aria-label="Home"><i class="fas fa-home"></i><span>Home</span></button>
-    <button class="nav-item"        data-screen="leaderboard" aria-label="Leaderboard"><i class="fas fa-trophy"></i><span>Ranks</span></button>
-    <button class="nav-item"        data-screen="rewards"     aria-label="Rewards"><i class="fas fa-gift"></i><span>Rewards</span></button>
-    <button class="nav-item"        data-screen="profile"     aria-label="Profile"><i class="fas fa-user"></i><span>Profile</span></button>
-    <button class="nav-item"        data-screen="settings"    aria-label="Settings"><i class="fas fa-cog"></i><span>Settings</span></button>
-  </nav>
+  
+ <!-- ══ BOTTOM NAV (V5 — Path replaces Home) ══ -->
+<nav id="bottom-nav" class="bottom-nav hidden" aria-label="Main navigation">
+  <button class="nav-item active" data-screen="path"        aria-label="Learning Path">
+    <i class="fas fa-map"></i><span>Path</span>
+  </button>
+  <button class="nav-item"        data-screen="leaderboard" aria-label="Leaderboard">
+    <i class="fas fa-trophy"></i><span>Ranks</span>
+  </button>
+  <button class="nav-item"        data-screen="rewards"     aria-label="Rewards">
+    <i class="fas fa-gift"></i><span>Rewards</span>
+  </button>
+  <button class="nav-item"        data-screen="profile"     aria-label="Profile">
+    <i class="fas fa-user"></i><span>Profile</span>
+  </button>
+  <button class="nav-item"        data-screen="settings"    aria-label="Settings">
+    <i class="fas fa-cog"></i><span>Settings</span>
+  </button>
+</nav>
+ 
 
   <!-- ══ AUTH MODAL ══ -->
   <div id="auth-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
@@ -819,7 +1180,88 @@
   </div>
   <button class="challenge-pending-cancel" id="challenge-pending-cancel">Cancel</button>
 </div>
+
  
+<!-- ═══════════════════════════════════════════════════════
+     SECTION C — NEW FABS + MODALS
+     Insert immediately before </div><!-- /#app -->
+     (after existing challenge-pending-overlay closing div)
+     ═══════════════════════════════════════════════════════ -->
+ 
+<!-- ══ DAILY CHALLENGE FAB (mirrors battle-fab pattern) ══ -->
+<!--
+  Sits above the learning path. Tapping opens the existing
+  Daily Challenge quiz flow (handleStartQuiz).
+  Hidden on quiz/result/battle screens (same logic as battle-fab).
+-->
+<button id="daily-challenge-fab" class="daily-challenge-fab hidden"
+        onclick="SQ.openDailyChallenge()" aria-label="Daily Challenge">
+  📅
+  <span class="daily-fab-label">Daily</span>
+  <span class="daily-fab-badge hidden" id="daily-fab-badge">!</span>
+</button>
+ 
+<!-- ══ DAILY CHALLENGE HUB MODAL ══ -->
+<!--
+  Opens when user taps the Daily Challenge FAB from the path screen.
+  Shows today's quiz availability, streak, and attempt count.
+  Mirrors the challenge-create-modal pattern.
+-->
+<div id="daily-challenge-modal" class="modal hidden" role="dialog" aria-labelledby="daily-modal-title">
+  <div class="modal-content" style="max-width:440px">
+ 
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:44px">📅</div>
+      <button class="btn-ghost btn-sm"
+              style="font-size:22px;color:var(--text-muted);line-height:1;padding:4px 8px"
+              onclick="SQ.closeDailyModal()">×</button>
+    </div>
+ 
+    <h3 id="daily-modal-title" style="margin-bottom:6px">Daily Challenge</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">
+      A timed quiz from the full question pool — counts toward the weekly leaderboard!
+    </p>
+ 
+    <!-- Streak chip -->
+    <div class="daily-modal-streak-row">
+      <span class="daily-modal-streak-chip" id="daily-modal-streak">🔥 0-day streak</span>
+      <span class="daily-modal-pts-chip"    id="daily-modal-weekly-pts">0 pts this week</span>
+    </div>
+ 
+    <!-- Availability block (quiz available) -->
+    <div id="daily-modal-available" class="hidden">
+      <div class="daily-modal-info-box">
+        <p>⏱️ 15 questions · 6 minutes</p>
+        <p style="margin-top:4px">🏆 Correct answers earn leaderboard points</p>
+        <p style="margin-top:4px" id="daily-modal-attempts-note">2 attempts remaining today</p>
+      </div>
+      <button id="daily-modal-start-btn" class="btn-primary btn-full btn-lg"
+              style="margin-top:16px">
+        <i class="fas fa-play"></i> Start Daily Challenge
+      </button>
+    </div>
+ 
+    <!-- Limit reached block -->
+    <div id="daily-modal-limit" class="hidden">
+      <div class="limit-box" style="margin-top:0">
+        <span class="limit-box-icon">⏰</span>
+        <h3>Daily Limit Reached</h3>
+        <p>You've completed both daily quizzes. Come back tomorrow!</p>
+        <div class="limit-countdown" id="daily-modal-countdown">--:--:--</div>
+        <p class="limit-sub">Until next quiz</p>
+      </div>
+    </div>
+ 
+    <!-- Resume block (shown when there's an unfinished quiz) -->
+    <div id="daily-modal-resume" class="hidden" style="margin-top:12px">
+      <button id="daily-modal-resume-btn" class="btn-secondary btn-full">
+        <i class="fas fa-redo"></i> Resume Unfinished Quiz
+      </button>
+    </div>
+ 
+  </div>
+</div>
+  
 </div><!-- /#app -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
