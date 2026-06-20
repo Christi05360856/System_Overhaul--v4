@@ -5,6 +5,9 @@
 // prompt, and challenge fact, then lets the
 // user tap "Begin Round".
 // Lazy-loaded — only imported when needed.
+//
+// UPDATE: Study cards now use bullet points
+// (5-6 items, 20-50 words each) for easier reading.
 // ============================================
 
 import { getRound }      from '../services/path.service.js';
@@ -53,19 +56,50 @@ function _render(round) {
   _setText('study-card-title',  card.title      || round.lessonTitle || '');
   _setText('study-lesson-label', `${round.passageRef || ''} · ${round.lessonId || ''}`);
 
-  // Teaching body — split paragraphs on \n\n
+  // Teaching body — show as bullet points for easy reading.
+  // Each bullet should be 20-50 words, covering key takeaways.
+  // If the data comes as an array of bullets, use them directly.
+  // If it comes as plain text, split into sentences and group.
   const teachingEl = el('study-teaching-body');
   if (teachingEl) {
     const raw = card.teaching || '';
-    // Split on double newlines or literal \n\n from JSON
-    const paragraphs = raw.split(/\n\n+/).filter(p => p.trim());
-    if (paragraphs.length > 1) {
-      teachingEl.innerHTML = paragraphs
-        .map(p => `<p class="study-teaching-para">${_escapeHTML(p.trim())}</p>`)
+
+    if (Array.isArray(raw) && raw.length > 0) {
+      // Data already comes as bullet array
+      teachingEl.innerHTML = raw
+        .filter(b => String(b).trim())
+        .map(b => `<li class="study-bullet">${_escapeHTML(String(b).trim())}</li>`)
         .join('');
+      teachingEl.tagName === 'UL' || (teachingEl.innerHTML = `<ul class="study-bullet-list">${teachingEl.innerHTML}</ul>`);
+    } else if (typeof raw === 'string' && raw.trim()) {
+      // Split text into bullet points
+      // First try splitting by double newlines, then by sentence groups
+      let bullets = raw.split(/\n\n+/).filter(p => p.trim());
+      if (bullets.length < 3) {
+        // Not enough paragraphs — split by sentences and group
+        const sentences = raw.match(/[^.!?]+[.!?]+/g) || [raw];
+        bullets = [];
+        let current = '';
+        sentences.forEach(s => {
+          current += ' ' + s.trim();
+          if (current.length > 40) {
+            bullets.push(current.trim());
+            current = '';
+          }
+        });
+        if (current.trim()) bullets.push(current.trim());
+      }
+      // Limit to 5-6 bullets, each 20-50 words
+      bullets = bullets.slice(0, 6).map(b => {
+        const words = b.trim().split(/\s+/);
+        if (words.length > 50) return words.slice(0, 50).join(' ') + '...';
+        return b.trim();
+      });
+      teachingEl.innerHTML = `<ul class="study-bullet-list">${
+        bullets.map(b => `<li class="study-bullet">${_escapeHTML(b)}</li>`).join('')
+      }</ul>`;
     } else {
-      // Fallback: treat the whole thing as one block
-      teachingEl.innerHTML = `<p class="study-teaching-para">${_escapeHTML(raw)}</p>`;
+      teachingEl.innerHTML = '';
     }
   }
 
@@ -89,6 +123,23 @@ function _render(round) {
     ? levels.map(_formatDifficulty).join(' → ')
     : 'Hard → Expert';
   _setText('study-difficulty-chip', chipText);
+
+  // Passing requirement notice
+  const noticeEl = el('study-passing-notice');
+  if (noticeEl) {
+    const total = questions.length || 7;
+    const needed = Math.ceil(total * 0.7);
+    noticeEl.innerHTML = `
+      <div class="passing-notice-box">
+        <span class="passing-notice-icon">🎯</span>
+        <p class="passing-notice-text">
+          You need <strong>${needed} out of ${total}</strong> correct to pass.
+        </p>
+        <p class="passing-notice-sub">Take your time. You can review this card anytime.</p>
+      </div>
+    `;
+    noticeEl.classList.remove('hidden');
+  }
 
   // Scroll study area to top
   const scrollEl = document.querySelector('.study-scroll-area');
