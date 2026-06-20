@@ -1,9 +1,6 @@
 /* ============================================
    SCRIPTUREQUEST V5 — path.css
    All colors use CSS variables from variables.css.
-   Zero hardcoded color values.
-   Add this file after components.css in index.html:
-     <link rel="stylesheet" href="/styles/path.css" />
    ============================================ */
 
 /* ============================================
@@ -251,19 +248,50 @@
    PATH SECTIONS, UNITS, LESSONS
    ============================================ */
 
-/* ── Section ── */
+/* ── Section wrapper ── */
 
 .path-section {
-  margin-bottom: 28px;
+  margin-bottom: 12px;
 }
 
+/* ── Section header ──
+   NOTE: this is rendered as a <button> element by path.page.js
+   (for accessibility / proper tap target), so default button
+   chrome is reset here to preserve the original card look. ── */
+
 .path-section-header {
+  display: block;
+  width: 100%;
+  text-align: left;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 14px 16px 10px;
   margin-bottom: 12px;
   box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background var(--transition-base), border-radius var(--transition-base), margin var(--transition-base);
+}
+
+.path-section-header:hover {
+  background: var(--bg-card-hover);
+  box-shadow: var(--shadow-sm);
+  transform: none;
+}
+
+.path-section-header:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* When the section is expanded, flatten the header's bottom
+   corners and remove its bottom margin so the body block
+   sits flush underneath it with no visible seam. */
+.path-section--expanded .path-section-header {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .path-section-header-inner {
@@ -321,6 +349,25 @@
   flex-shrink: 0;
 }
 
+/* ── Chevron indicator (rotates on expand) ── */
+
+.path-section-chevron {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  transition: transform var(--transition-base), color var(--transition-base);
+}
+
+.path-section--expanded .path-section-chevron {
+  transform: rotate(180deg);
+  color: var(--accent-primary);
+}
+
 .path-section-progress-bar {
   height: 3px;
   background: var(--border);
@@ -333,6 +380,27 @@
   background: var(--accent-gradient);
   border-radius: var(--radius-full);
   transition: width 0.4s ease;
+}
+
+/* ── Section body (collapsible content — units/lessons/nodes) ── */
+
+.path-section-body {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  padding: 12px;
+  margin-bottom: 12px;
+  animation: pathSectionExpand 0.25s ease;
+}
+
+.path-section-body[hidden] {
+  display: none;
+}
+
+@keyframes pathSectionExpand {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Unit ── */
@@ -382,7 +450,6 @@
 .path-lessons-list {
   display: flex;
   flex-direction: column;
-  divide-y: var(--border);
 }
 
 .path-lesson {
@@ -472,8 +539,14 @@
   50%       { transform: scale(1.06); }
 }
 
-/* Complete */
-.path-node--complete { cursor: default; }
+/* Complete — still tappable for review/retry, distinct hover cue */
+.path-node--complete {
+  cursor: pointer;
+}
+
+.path-node--complete:hover .path-node-ring-fill--complete {
+  filter: brightness(1.15);
+}
 
 /* Tap feedback */
 .path-node--tapped {
