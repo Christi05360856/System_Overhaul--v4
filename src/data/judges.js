@@ -1,4 +1,4 @@
-export cont judges = {
+export const judges = {
 "JDG-01-A": {
     "lessonId": "JDG-01-A",
     "lessonTitle": "The Incomplete Conquest and the Angel at Bokim",
