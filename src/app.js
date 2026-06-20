@@ -2449,6 +2449,7 @@ async function cancelMatchById(matchId) {
 
 window.SQ = {
   switchAuthTab,
+  openAuthModal,
   closeAuthModal,
   showConfirm,
   showScreen,
