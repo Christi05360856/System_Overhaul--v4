@@ -1,39 +1,3 @@
-// ============================================
-// SCRIPTUREQUEST V4 — app.js
-// FIXES IN THIS VERSION:
-//
-//   ISSUE 1 — Modal scroll: openChallengeHub now adds
-//     max-height + overflow-y:auto inline on modal-content
-//     so it never overflows the viewport on mobile.
-//
-//   ISSUE 2 — History redesign: _loadBattleHistoryIntoHub
-//     now renders card-style history (no table) that looks
-//     great on mobile — opponent name, score chip, result
-//     badge all in a clean card row.
-//
-//   ISSUE 3 — Presence dots: _patchLeaderboardRowsWithPresence
-//     now enables ALL challenge buttons for ALL online users
-//     on every presence map update (not just the changed uid).
-//     Also, buttons are no longer permanently disabled from
-//     the start — they get a "checking…" state that resolves.
-//
-//   ISSUE 4 — Cancel for active/direct challenges:
-//     cancelActiveChallenge now also cancels outgoing direct
-//     challenges (_outgoingChallengeId). A "Cancel" button is
-//     shown in the pending overlay AND the hub modal whenever
-//     any challenge is active. Ghost "active" matches are
-//     cleaned up: on hub open, any pending direct challenge
-//     older than TTL is cancelled automatically.
-//
-//   ISSUE 5 — Incoming challenge popup:
-//     showIncomingChallengeModal now has a robust fallback:
-//     if the overlay is not found OR is obscured, it creates
-//     a self-contained overlay dynamically. The listener also
-//     clears stale (already-handled) incoming docs on login
-//     before starting the listener, preventing ghost fires.
-//     Added a 30-second aggressive poll as backup.
-// ============================================
-
 import { initAuthListener, login, register,
          logout, updateProfile_,
          resetPassword, getAuthErrorMessage } from './services/auth.service.js';
@@ -92,10 +56,19 @@ let _lbCountdownTimer        = null;
 let _limitTimer              = null;
 let _appUrl                  = window.location.origin;
 
-// Direct challenge state
 let _incomingChallenge       = null;
 let _challengeTimerInterval  = null;
 let _outgoingChallengeId     = null;
+
+// V5: Path / round / study page lazy loaders
+let _pathPage        = null;
+let _studyPage       = null;
+let _roundPage       = null;
+let _roundResultPage = null;
+
+// V5: Path navigation state
+let _currentRoundId  = null;
+let _dailyLimitTimer = null;
 
 // ============================================
 // LAZY LOADERS
@@ -122,12 +95,34 @@ async function getQuizPage() {
   return _quizPage;
 }
 
+async function getPathPage() {
+  if (!_pathPage) _pathPage = await import('./pages/path.page.js');
+  return _pathPage;
+}
+
+async function getStudyPage() {
+  if (!_studyPage) _studyPage = await import('./pages/study.page.js');
+  return _studyPage;
+}
+
+async function getRoundPage() {
+  if (!_roundPage) _roundPage = await import('./pages/round.page.js');
+  return _roundPage;
+}
+
+async function getRoundResultPage() {
+  if (!_roundResultPage) _roundResultPage = await import('./pages/round-result.page.js');
+  return _roundResultPage;
+}
+
 // ============================================
 // SCREEN MANAGEMENT
 // ============================================
 
-const SCREENS = ['loading','landing','quiz','result','leaderboard','rewards',
-                 'profile','settings','battle','battle-result','challenge'];
+const SCREENS = ['loading','landing','path','quiz','result','leaderboard','rewards',
+                 'profile','settings','battle','battle-result','challenge',
+                 'study','round','round-result',
+                 'lesson-complete','unit-complete','section-complete'];
 
 function showScreen(name) {
   SCREENS.forEach(id => {
@@ -136,7 +131,8 @@ function showScreen(name) {
   });
 
   const nav   = document.getElementById('bottom-nav');
-  const noNav = ['loading','quiz','result','battle','battle-result','challenge'];
+  const noNav = ['loading','quiz','result','round','study',
+                 'battle','battle-result','challenge'];
   if (nav) nav.classList.toggle('hidden', noNav.includes(name));
 
   document.querySelectorAll('.nav-item').forEach(btn => {
@@ -145,11 +141,11 @@ function showScreen(name) {
 
   setState('nav', { current: name });
 
-  const FAB_SCREENS = ['landing', 'leaderboard'];
-  if (name !== 'landing') {
-    setBattleFabVisible(FAB_SCREENS.includes(name));
-  }
+  const FAB_SCREENS = ['path', 'leaderboard'];
+  setBattleFabVisible(FAB_SCREENS.includes(name));
+  setDailyFabVisible(name === 'path');
 
+  if (name === 'path')        initPathScreen();
   if (name === 'leaderboard') initLeaderboardScreen();
   if (name === 'rewards')     initRewardsScreen();
   if (name === 'profile')     initProfileScreen();
@@ -159,7 +155,7 @@ function showScreen(name) {
 }
 
 // ============================================
-// BATTLE FAB
+// FAB HELPERS
 // ============================================
 
 function setBattleFabVisible(visible) {
@@ -167,17 +163,20 @@ function setBattleFabVisible(visible) {
   if (fab) fab.classList.toggle('hidden', !visible);
 }
 
+function setDailyFabVisible(visible) {
+  const fab = document.getElementById('daily-challenge-fab');
+  if (fab) fab.classList.toggle('hidden', !visible);
+}
+
 // ============================================
 // CHALLENGE HUB MODAL
-// ISSUE 1 FIX: max-height + overflow-y applied to inner container
-// ISSUE 4 FIX: shows cancel button for any active challenge type
+// ISSUE 1: Modal scroll fix. ISSUE 4: Cancel for any active challenge.
 // ============================================
 
 function openChallengeHub() {
   const user = getCurrentUser();
   if (!user) { openAuthModal(); return; }
 
-  // ISSUE 1 FIX: Apply responsive max-height to modal content
   const modalContent = document.querySelector('#challenge-create-modal .modal-content');
   if (modalContent) {
     modalContent.style.maxHeight    = 'calc(var(--vh, 1vh) * 85)';
@@ -191,14 +190,12 @@ function openChallengeHub() {
     modalContent.style.paddingBottom = '24px';
   }
 
-  // Set correct vh unit (fixes iOS Safari 100vh bug)
   _setVhUnit();
 
   const codeBox       = document.getElementById('challenge-code-box');
   const createActions = document.getElementById('challenge-create-actions');
   const shareActions  = document.getElementById('challenge-share-actions');
 
-  // ISSUE 4 FIX: Show cancel if ANY challenge is active (WhatsApp or direct)
   const hasActiveChallenge = (_activeChallengeMatchId && _currentChallenge)
                            || (_outgoingChallengeId);
 
@@ -221,15 +218,17 @@ function openChallengeHub() {
   _loadBattleHistoryIntoHub(user.uid);
 }
 
-// Sets --vh CSS variable to true viewport height (fixes iOS Safari)
 function _setVhUnit() {
   const vh = window.innerHeight * 0.01;
   document.documentElement.style.setProperty('--vh', `${vh}px`);
 }
 
+function closeChallengeModal() {
+  document.getElementById('challenge-create-modal')?.classList.add('hidden');
+}
+
 // ============================================
-// BATTLE HISTORY — CARD STYLE (ISSUE 2 FIX)
-// Replaces the table with mobile-friendly cards
+// BATTLE HISTORY - CARD STYLE (ISSUE 2 FIX)
 // ============================================
 
 async function _loadBattleHistoryIntoHub(uid) {
@@ -262,48 +261,26 @@ async function _loadBattleHistoryIntoHub(uid) {
       const myPct     = isCreator ? m.creatorPct  : m.opponentPct;
       const oppPct    = isCreator ? m.opponentPct : m.creatorPct;
 
-      // Result chip
-      let resultChip = '';
-      let resultColor = 'var(--text-muted)';
-      let resultBg    = 'var(--bg-subtle)';
-      let resultBorder = 'var(--border)';
+      let resultChip = '', resultColor = 'var(--text-muted)', resultBg = 'var(--bg-subtle)', resultBorder = 'var(--border)';
 
       if (m.status === 'completed') {
         const iWon   = m.winnerId === uid;
         const isDraw = m.winnerId === 'draw';
         if (isDraw) {
-          resultChip   = '🤝 Draw';
-          resultColor  = '#6366f1';
-          resultBg     = '#ede9fe';
-          resultBorder = '#c4b5fd';
+          resultChip = '🤝 Draw'; resultColor = '#6366f1'; resultBg = '#ede9fe'; resultBorder = '#c4b5fd';
         } else if (iWon) {
-          resultChip   = '🏆 Won';
-          resultColor  = '#16a34a';
-          resultBg     = '#dcfce7';
-          resultBorder = '#86efac';
+          resultChip = '🏆 Won'; resultColor = '#16a34a'; resultBg = '#dcfce7'; resultBorder = '#86efac';
         } else {
-          resultChip   = '😔 Lost';
-          resultColor  = '#dc2626';
-          resultBg     = '#fee2e2';
-          resultBorder = '#fca5a5';
+          resultChip = '😔 Lost'; resultColor = '#dc2626'; resultBg = '#fee2e2'; resultBorder = '#fca5a5';
         }
       } else if (m.status === 'pending' || m.status === 'waiting') {
-        resultChip   = '⏳ Pending';
-        resultColor  = '#d97706';
-        resultBg     = '#fef3c7';
-        resultBorder = '#fcd34d';
+        resultChip = '⏳ Pending'; resultColor = '#d97706'; resultBg = '#fef3c7'; resultBorder = '#fcd34d';
       } else if (m.status === 'active') {
-        resultChip   = '⚔️ Active';
-        resultColor  = '#2563eb';
-        resultBg     = '#dbeafe';
-        resultBorder = '#93c5fd';
+        resultChip = '⚔️ Active'; resultColor = '#2563eb'; resultBg = '#dbeafe'; resultBorder = '#93c5fd';
       } else if (m.status === 'cancelled' || m.status === 'rejected') {
-        resultChip   = '✕ Cancelled';
-        resultColor  = 'var(--text-muted)';
-        resultBg     = 'var(--bg-subtle)';
-        resultBorder = 'var(--border)';
+        resultChip = '✕ Cancelled';
       } else {
-        resultChip   = '—';
+        resultChip = '—';
       }
 
       const score = (m.status === 'completed' && myPct !== null)
@@ -313,7 +290,6 @@ async function _loadBattleHistoryIntoHub(uid) {
       const safeOpp = escapeHTML(oppName);
       const mId     = m.matchId || m.id || '';
 
-      // Cancel button for any stuck/ghost active or pending match
       const canCancel = (m.status === 'active' || m.status === 'pending' || m.status === 'waiting') && mId;
       const cancelBtn = canCancel
         ? `<button
@@ -375,10 +351,6 @@ async function _loadBattleHistoryIntoHub(uid) {
   }
 }
 
-function closeChallengeModal() {
-  document.getElementById('challenge-create-modal')?.classList.add('hidden');
-}
-
 // ============================================
 // SUBSCRIPTION HELPERS
 // ============================================
@@ -399,8 +371,6 @@ initAuthListener(
 
     startPresenceHeartbeat();
 
-    // ISSUE 5 FIX: Clean up any stale incoming challenge doc BEFORE starting
-    // the listener, so old unhandled challenges don't trigger the modal on login
     _clearStaleIncomingChallenge(user.uid).then(() => {
       listenForIncomingChallenges(user.uid, _handleIncomingChallengeSafely);
     });
@@ -411,12 +381,10 @@ initAuthListener(
     if (code) {
       _pendingChallengeCode = code;
       clearChallengeFromURL();
-      showScreen('landing');
-      initLandingScreen();
+      showScreen('path');
       setTimeout(() => showChallengeAcceptModal(code), 800);
     } else {
-      showScreen('landing');
-      initLandingScreen();
+      showScreen('path');
     }
   },
   () => {
@@ -433,9 +401,12 @@ initAuthListener(
       localStorage.setItem('sq_pending_challenge', code);
     }
 
-    showScreen('landing');
+    showScreen('path');
     document.getElementById('auth-section')?.classList.remove('hidden');
     document.getElementById('welcome-section')?.classList.add('hidden');
+    document.getElementById('path-auth-prompt')?.classList.remove('hidden');
+    document.getElementById('path-content')?.classList.add('hidden');
+    document.getElementById('path-skeleton')?.classList.add('hidden');
     document.getElementById('bottom-nav')?.classList.add('hidden');
 
     if (code) {
@@ -448,11 +419,7 @@ initAuthListener(
 );
 
 // ============================================
-// ISSUE 5 FIX — Clear stale incoming challenge
-// Checks the incoming challenge doc: if it was
-// created more than 5 minutes ago or already
-// handled (status !== 'pending'), deletes it
-// so it doesn't trigger the modal on next login.
+// ISSUE 5 FIX - Clear stale incoming challenge
 // ============================================
 
 async function _clearStaleIncomingChallenge(uid) {
@@ -479,23 +446,17 @@ async function _clearStaleIncomingChallenge(uid) {
 }
 
 // ============================================
-// ISSUE 5 FIX — Safe incoming challenge handler
-// Wraps showIncomingChallengeModal with a guard:
-// ignores challenges that are already expired
-// or that came in while the app was in background
-// for too long (more than 4.5 minutes old).
+// ISSUE 5 FIX - Safe incoming challenge handler
 // ============================================
 
 function _handleIncomingChallengeSafely(challenge) {
   const now = Date.now();
 
-  // Already expired
   if (challenge.expiresAt && challenge.expiresAt < now) {
     console.log('[App] Ignoring expired incoming challenge');
     return;
   }
 
-  // Too old to bother showing (within last 4.5 min only)
   const AGE_LIMIT = 4.5 * 60 * 1000;
   if (challenge.expiresAt && (challenge.expiresAt - now) < (300000 - AGE_LIMIT)) {
     console.log('[App] Incoming challenge too close to expiry, skipping');
@@ -503,6 +464,215 @@ function _handleIncomingChallengeSafely(challenge) {
   }
 
   showIncomingChallengeModal(challenge);
+}
+
+// ============================================
+// PATH SCREEN (V5)
+// ============================================
+
+async function initPathScreen() {
+  const user    = getCurrentUser();
+  const profile = getUserProfile();
+  const stats   = getUserStats();
+
+  const avatarEl = document.getElementById('path-header-avatar');
+  if (avatarEl && profile) {
+    const { mountAvatar } = await import('./components/avatar.js');
+    const { getAvatarId } = await import('./services/avatar.service.js');
+    mountAvatar(getAvatarId(profile), avatarEl);
+  }
+
+  const xpEl = document.getElementById('path-xp-value');
+  if (xpEl) {
+    if (user) {
+      try {
+        const { getUserProgress } = await import('./services/progress.service.js');
+        const progress = await getUserProgress(user.uid);
+        xpEl.textContent = (progress.totalPathXp || 0).toLocaleString();
+      } catch (e) {
+        xpEl.textContent = '0';
+      }
+    } else {
+      xpEl.textContent = '0';
+    }
+  }
+
+  const pp = await getPathPage();
+  pp.initPathPage({ user, onRoundStart: handleRoundStart });
+}
+
+async function handleRoundStart(roundId) {
+  const user = getCurrentUser();
+  if (!user) { openAuthModal(); return; }
+  _currentRoundId = roundId;
+  const sp = await getStudyPage();
+  showScreen('study');
+  sp.initStudyScreen(roundId, { onBeginRound: handleBeginRound, onBack: () => showScreen('path') });
+}
+
+async function handleBeginRound(roundId) {
+  _currentRoundId = roundId;
+  const rp = await getRoundPage();
+  showScreen('round');
+  rp.initRoundScreen(roundId, { onComplete: handleRoundComplete, onQuit: handleRoundQuit });
+}
+
+async function handleRoundComplete(result) {
+  const rrp = await getRoundResultPage();
+  showScreen('round-result');
+  rrp.initRoundResultScreen(result, {
+    onNextRound:    async (nextRoundId) => { await handleRoundStart(nextRoundId); },
+    onStudyAgain:   async (roundId)     => { await handleRoundStart(roundId); },
+    onRetry:        async (roundId)     => { await handleBeginRound(roundId); },
+    onBackToPath:   () => showScreen('path'),
+    onLessonComplete:   (data) => { showScreen('lesson-complete'); initLessonCompleteScreen(data); },
+    onUnitComplete:     (data) => { showScreen('unit-complete');   initUnitCompleteScreen(data); },
+    onSectionComplete:  (data) => { showScreen('section-complete'); initSectionCompleteScreen(data); }
+  });
+}
+
+function handleRoundQuit() {
+  _currentRoundId = null;
+  showScreen('path');
+}
+
+function initLessonCompleteScreen(data) {
+  const el = id => document.getElementById(id);
+  if (el('lesson-complete-title')) el('lesson-complete-title').textContent = 'Lesson Complete!';
+  if (el('lesson-complete-sub'))   el('lesson-complete-sub').textContent   = data.passageRef  || '';
+  if (el('lesson-complete-xp'))    el('lesson-complete-xp').textContent    = `+${data.xp || 100} XP`;
+  if (el('lesson-complete-body'))  el('lesson-complete-body').textContent  = `You've mastered ${data.lessonTitle || 'this lesson'}. Keep going!`;
+
+  const nextBtn = el('lesson-next-btn');
+  const backBtn = el('lesson-back-path-btn');
+  if (nextBtn) {
+    const n = nextBtn.cloneNode(true);
+    nextBtn.parentNode.replaceChild(n, nextBtn);
+    n.addEventListener('click', async () => {
+      if (data.nextRoundId) { await handleRoundStart(data.nextRoundId); }
+      else                  { showScreen('path'); }
+    });
+  }
+  if (backBtn) {
+    const b = backBtn.cloneNode(true);
+    backBtn.parentNode.replaceChild(b, backBtn);
+    b.addEventListener('click', () => showScreen('path'));
+  }
+}
+
+function initUnitCompleteScreen(data) {
+  const el = id => document.getElementById(id);
+  if (el('unit-complete-title')) el('unit-complete-title').textContent = 'Book Complete!';
+  if (el('unit-complete-book'))  el('unit-complete-book').textContent  = data.bookTitle    || '';
+  if (el('unit-complete-xp'))    el('unit-complete-xp').textContent    = `+${data.xp || 200} XP`;
+  if (el('unit-complete-body'))  el('unit-complete-body').textContent  = `You've completed every lesson in ${data.bookTitle || 'this book'}. Outstanding work!`;
+
+  const nextBtn = el('unit-next-btn');
+  const backBtn = el('unit-back-path-btn');
+  if (nextBtn) {
+    const n = nextBtn.cloneNode(true);
+    nextBtn.parentNode.replaceChild(n, nextBtn);
+    n.addEventListener('click', async () => {
+      if (data.nextRoundId) { await handleRoundStart(data.nextRoundId); }
+      else                  { showScreen('path'); }
+    });
+  }
+  if (backBtn) {
+    const b = backBtn.cloneNode(true);
+    backBtn.parentNode.replaceChild(b, backBtn);
+    b.addEventListener('click', () => showScreen('path'));
+  }
+}
+
+function initSectionCompleteScreen(data) {
+  const el = id => document.getElementById(id);
+  if (el('section-complete-title')) el('section-complete-title').textContent = 'Section Complete!';
+  if (el('section-complete-name'))  el('section-complete-name').textContent  = data.sectionTitle || '';
+  if (el('section-complete-xp'))    el('section-complete-xp').textContent    = `+${data.xp || 1000} XP`;
+  if (el('section-complete-body'))  el('section-complete-body').textContent  = `You've mastered an entire division of the Bible. This is serious achievement.`;
+  if (el('section-cert-name'))      el('section-cert-name').textContent      = data.sectionTitle || '';
+
+  const nextBtn = el('section-next-btn');
+  const backBtn = el('section-back-path-btn');
+  if (nextBtn) {
+    const n = nextBtn.cloneNode(true);
+    nextBtn.parentNode.replaceChild(n, nextBtn);
+    n.addEventListener('click', async () => {
+      if (data.nextRoundId) { await handleRoundStart(data.nextRoundId); }
+      else                  { showScreen('path'); }
+    });
+  }
+  if (backBtn) {
+    const b = backBtn.cloneNode(true);
+    backBtn.parentNode.replaceChild(b, backBtn);
+    b.addEventListener('click', () => showScreen('path'));
+  }
+}
+
+// ============================================
+// DAILY CHALLENGE MODAL
+// ============================================
+
+async function openDailyChallenge() {
+  const user = getCurrentUser();
+  if (!user) { openAuthModal(); return; }
+
+  const stats = getUserStats();
+  const streakEl = document.getElementById('daily-modal-streak');
+  if (streakEl) {
+    const s = stats?.currentStreak || 0;
+    streakEl.textContent = s > 0 ? `🔥 ${s}-day streak` : '🌱 No streak yet';
+  }
+
+  const ptsEl = document.getElementById('daily-modal-weekly-pts');
+  if (ptsEl) {
+    ptsEl.textContent = `${(stats?.weeklyPoints || 0).toLocaleString()} pts this week`;
+  }
+
+  const limit = await checkDailyLimit();
+  const avail = document.getElementById('daily-modal-available');
+  const lim   = document.getElementById('daily-modal-limit');
+  const res   = document.getElementById('daily-modal-resume');
+
+  if (res) res.classList.toggle('hidden', !hasResumableQuiz());
+
+  if (limit.blocked) {
+    avail?.classList.add('hidden');
+    lim?.classList.remove('hidden');
+    _startDailyModalCountdown(limit.nextQuizTime);
+  } else {
+    avail?.classList.remove('hidden');
+    lim?.classList.add('hidden');
+    const note = document.getElementById('daily-modal-attempts-note');
+    if (note) {
+      note.textContent = limit.remaining === 2
+        ? '2 attempts remaining today'
+        : '1 attempt remaining today';
+    }
+  }
+
+  document.getElementById('daily-challenge-modal')?.classList.remove('hidden');
+}
+
+function closeDailyModal() {
+  document.getElementById('daily-challenge-modal')?.classList.add('hidden');
+  if (_dailyLimitTimer) { clearInterval(_dailyLimitTimer); _dailyLimitTimer = null; }
+}
+
+function _startDailyModalCountdown(nextTime) {
+  const el = document.getElementById('daily-modal-countdown');
+  if (!el) return;
+  if (_dailyLimitTimer) clearInterval(_dailyLimitTimer);
+  function update() {
+    const diff = nextTime - Date.now();
+    if (diff <= 0) { clearInterval(_dailyLimitTimer); openDailyChallenge(); return; }
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+  update();
+  _dailyLimitTimer = setInterval(update, 1000);
 }
 
 // ============================================
@@ -652,8 +822,7 @@ async function _checkPendingBattleResult(user) {
 
 // ============================================
 // LEADERBOARD SCREEN
-// ISSUE 3 FIX: Buttons start enabled/disabled
-// correctly; presence patches ALL rows on update
+// ISSUE 3: Buttons start in checking state; presence patches ALL rows.
 // ============================================
 
 async function initLeaderboardScreen() {
@@ -691,18 +860,14 @@ async function initLeaderboardScreen() {
     if (count) count.textContent =
       `${entries.length} competitor${entries.length !== 1 ? 's' : ''} this week`;
 
-    // Subscribe to presence for all UIDs
     const uids = entries.map(e => e.uid || e.userId).filter(Boolean);
     unsubscribePresenceList();
     subscribeToPresenceList(uids, presenceMap => {
-      // ISSUE 3 FIX: Pass entries so we can update ALL rows, not just changed ones
       _patchLeaderboardRowsWithPresence(entries, presenceMap, currentUserId);
     });
   });
 }
 
-// Renders leaderboard rows — buttons start with a "checking" state
-// and get enabled/disabled once presence fires
 function renderLeaderboardRowsWithChallenge(entries, container, currentUserId) {
   if (!container) return;
 
@@ -727,10 +892,8 @@ function renderLeaderboardRowsWithChallenge(entries, container, currentUserId) {
     const streakHTML = entry.streak
       ? `<span style="font-size:12px;color:var(--accent-warm);font-weight:700">🔥${entry.streak}</span>`
       : '';
-    const safeName = (entry.displayName || 'Anonymous').replace(/'/g, "\\'");
+    const safeName = (entry.displayName || 'Anonymous').replace(/'/g, "\'");
 
-    // ISSUE 3 FIX: Don't start disabled — start in a neutral state.
-    // Presence patches will enable/disable once data arrives.
     return `
       <div class="lb-row ${isSelf ? 'lb-row--me' : ''}" data-lb-uid="${uid}" data-rank="${rank}">
         <div class="lb-rank">${medal}</div>
@@ -758,33 +921,27 @@ function renderLeaderboardRowsWithChallenge(entries, container, currentUserId) {
   });
 }
 
-// ISSUE 3 FIX: Patches ALL rows on every presence map update
-// (previously only patched individual rows, missing bulk updates)
 function _patchLeaderboardRowsWithPresence(entries, presenceMap, currentUserId) {
   entries.forEach(entry => {
     const uid = entry.uid || entry.userId;
-    if (uid === currentUserId) return; // skip self
+    if (uid === currentUserId) return;
 
     const row = document.querySelector(`[data-lb-uid="${uid}"]`);
     if (!row) return;
 
     const isOnline = presenceMap[uid] === true;
 
-    // Update presence dot
     const dotSlot = row.querySelector('.lb-presence-slot');
     if (dotSlot) {
       dotSlot.innerHTML = getPresenceDotHtml(isOnline);
     }
 
-    // ISSUE 3 FIX: Always enable/disable based on online status
-    // (previously some buttons stayed permanently disabled)
     const btn = row.querySelector('.lb-challenge-btn');
     if (btn) {
       btn.disabled = !isOnline;
       btn.title    = isOnline
         ? `Challenge ${entry.displayName || 'Opponent'} — Online now!`
         : `${entry.displayName || 'Opponent'} is offline`;
-      // Visual cue for online
       btn.style.opacity = isOnline ? '1' : '0.4';
     }
   });
@@ -1071,8 +1228,7 @@ async function handleQuizComplete(result) {
 function handleQuizAbandon() {
   clearQuizStorage();
   _activeLocalSession = null;
-  showScreen('landing');
-  initLandingScreen();
+  showScreen('path');
 }
 
 // ============================================
@@ -1232,17 +1388,12 @@ function showConfirm({ icon='⚠️', title, message, onConfirm }) {
 }
 
 // ============================================
-// INCOMING CHALLENGE MODAL
-// ISSUE 5 FIX: Dynamic fallback overlay creation
-// if DOM element is missing or stacking broken.
-// Also shows a toast as secondary notification.
+// INCOMING CHALLENGE MODAL (ISSUE 5 FIX)
 // ============================================
 
 function showIncomingChallengeModal(challenge) {
   _incomingChallenge = challenge;
 
-  // ISSUE 5 FIX: Always show a toast as backup notification
-  // so users don't miss the challenge even if overlay fails
   showToast(
     `⚔️ ${challenge.challengerName || 'Someone'} challenged you to a battle!`,
     'info',
@@ -1251,7 +1402,6 @@ function showIncomingChallengeModal(challenge) {
 
   let overlay = document.getElementById('incoming-challenge-overlay');
 
-  // ISSUE 5 FIX: If overlay doesn't exist in DOM, create it dynamically
   if (!overlay) {
     console.warn('[App] #incoming-challenge-overlay not found — creating dynamically');
     overlay = _createIncomingChallengeOverlay();
@@ -1282,12 +1432,10 @@ function showIncomingChallengeModal(challenge) {
   updateTimer();
   _challengeTimerInterval = setInterval(updateTimer, 1000);
 
-  // Ensure overlay is on top of everything
   overlay.style.zIndex = '99999';
   overlay.classList.remove('hidden');
 }
 
-// Creates a fallback overlay if the HTML one is missing
 function _createIncomingChallengeOverlay() {
   const div = document.createElement('div');
   div.id = 'incoming-challenge-overlay';
@@ -1328,7 +1476,6 @@ function _createIncomingChallengeOverlay() {
       </div>
     </div>`;
 
-  // Style the overlay itself
   div.style.cssText = `
     position:fixed; inset:0; z-index:99999;
     background:rgba(0,0,0,0.6);
@@ -1336,7 +1483,6 @@ function _createIncomingChallengeOverlay() {
     padding:20px; backdrop-filter:blur(4px);
   `;
 
-  // Wire up the dynamically created buttons
   div.querySelector('#incoming-accept-btn')?.addEventListener('click', async () => {
     if (!_incomingChallenge) return;
     const btn = div.querySelector('#incoming-accept-btn');
@@ -1375,9 +1521,7 @@ function closeIncomingChallengeModal() {
 }
 
 // ============================================
-// DIRECT CHALLENGE FROM LEADERBOARD
-// ISSUE 4 FIX: cancelActiveChallenge handles
-// both WhatsApp and direct challenge types.
+// DIRECT CHALLENGE FROM LEADERBOARD (ISSUE 4 FIX)
 // ============================================
 
 async function handleDirectChallenge(targetUid, targetName) {
@@ -1388,7 +1532,6 @@ async function handleDirectChallenge(targetUid, targetName) {
     return;
   }
 
-  // ISSUE 4 FIX: If there's already an outgoing challenge, offer to cancel first
   if (_outgoingChallengeId) {
     showToast(
       'You already have a pending challenge. Cancel it first or wait for a response.',
@@ -1427,7 +1570,6 @@ async function handleDirectChallenge(targetUid, targetName) {
       }
     });
 
-    // Auto-expire after 5 minutes
     setTimeout(() => {
       if (_outgoingChallengeId === result.matchId) {
         _hideChallengePendingOverlay();
@@ -1461,25 +1603,20 @@ function _hideChallengePendingOverlay() {
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  // Update vh unit on resize (iOS Safari fix)
   window.addEventListener('resize', _setVhUnit);
   _setVhUnit();
 
-  // ── Battle FAB ──
   document.getElementById('battle-fab')?.addEventListener('click', openChallengeHub);
 
-  // ── Challenge create modal ──
   document.getElementById('generate-challenge-btn')?.addEventListener('click', generateChallenge);
   document.getElementById('challenge-modal-close-btn')?.addEventListener('click', closeChallengeModal);
   document.getElementById('challenge-cancel-btn')?.addEventListener('click', cancelActiveChallenge);
 
-  // ── Challenge accept modal ──
   document.getElementById('challenge-accept-modal-close-btn')
     ?.addEventListener('click', closeChallengeAcceptModal);
   document.getElementById('accept-challenge-btn')
     ?.addEventListener('click', acceptChallengeByCode);
 
-  // ── Hub: Join by code ──
   function _handleJoinByCode(inputId, btnId) {
     const btn = document.getElementById(btnId);
     if (!btn) return;
@@ -1522,7 +1659,6 @@ document.addEventListener('DOMContentLoaded', () => {
   _handleJoinByCode('lb-join-code-input',  'lb-join-code-btn');
   _handleJoinByCode('hub-join-code-input', 'hub-join-code-btn');
 
-  // ── Incoming direct challenge: accept ──
   document.getElementById('incoming-accept-btn')?.addEventListener('click', async () => {
     if (!_incomingChallenge) return;
     const btn = document.getElementById('incoming-accept-btn');
@@ -1541,7 +1677,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ── Incoming direct challenge: reject ──
   document.getElementById('incoming-reject-btn')?.addEventListener('click', async () => {
     if (!_incomingChallenge) return;
     const user = getCurrentUser();
@@ -1550,18 +1685,27 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Challenge declined.', 'info', 2000);
   });
 
-  // ── Outgoing direct challenge: cancel (ISSUE 4 FIX) ──
   document.getElementById('challenge-pending-cancel')?.addEventListener('click', () => {
     _cancelOutgoingDirectChallenge();
   });
 
-  // ── Auth modal ──
+  document.getElementById('daily-challenge-fab')?.addEventListener('click', openDailyChallenge);
+
+  document.getElementById('daily-modal-start-btn')?.addEventListener('click', () => {
+    closeDailyModal();
+    handleStartQuiz(false);
+  });
+  document.getElementById('daily-modal-resume-btn')?.addEventListener('click', () => {
+    closeDailyModal();
+    handleStartQuiz(true);
+  });
+  document.getElementById('daily-modal-close-btn')?.addEventListener('click', closeDailyModal);
+
   document.getElementById('open-auth-btn')?.addEventListener('click', openAuthModal);
   document.getElementById('auth-modal')?.addEventListener('click', e => {
     if (e.target === e.currentTarget) closeAuthModal();
   });
 
-  // ── Login ──
   document.getElementById('login-btn')?.addEventListener('click', async () => {
     const email = document.getElementById('login-email')?.value.trim();
     const pass  = document.getElementById('login-password')?.value;
@@ -1583,7 +1727,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ── Register ──
   document.getElementById('register-btn')?.addEventListener('click', async () => {
     const name  = document.getElementById('reg-name')?.value.trim();
     const email = document.getElementById('reg-email')?.value.trim();
@@ -1607,7 +1750,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ── Forgot password ──
   document.getElementById('forgot-btn')?.addEventListener('click', async () => {
     const email = document.getElementById('login-email')?.value.trim();
     if (!email) return showAuthMessage('Enter your email above first');
@@ -1625,18 +1767,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ── Quiz ──
   document.getElementById('start-quiz-btn')?.addEventListener('click',
     () => handleStartQuiz(false));
   document.getElementById('resume-quiz-btn')?.addEventListener('click',
     () => handleStartQuiz(true));
 
-  // ── Bottom nav ──
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.dataset.screen;
       if (!target) return;
-      if (!['landing','settings'].includes(target) && !getCurrentUser()) {
+      if (!['path','settings'].includes(target) && !getCurrentUser()) {
         openAuthModal();
         return;
       }
@@ -1653,18 +1793,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ── Result buttons ──
   document.getElementById('view-leaderboard-btn')
     ?.addEventListener('click', () => showScreen('leaderboard'));
   document.getElementById('back-home-btn')
-    ?.addEventListener('click', () => { showScreen('landing'); initLandingScreen(); });
+    ?.addEventListener('click', () => showScreen('path'));
 
-  // ── Profile tabs ──
   document.querySelectorAll('.profile-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchProfileTab(btn.dataset.tab));
   });
 
-  // ── Profile contact save ──
   document.getElementById('save-contact-btn')?.addEventListener('click', async () => {
     const user    = getCurrentUser();
     const phone   = document.getElementById('profile-phone')?.value.trim();
@@ -1702,7 +1839,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showConfirm({
       icon: '👋', title: 'Sign Out',
       message: 'Are you sure you want to sign out?',
-      onConfirm: async () => { await logout(); showScreen('landing'); }
+      onConfirm: async () => { await logout(); showScreen('path'); }
     });
   });
 
@@ -1739,7 +1876,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showConfirm({
       icon: '👋', title: 'Sign Out',
       message: 'Are you sure you want to sign out?',
-      onConfirm: async () => { await logout(); showScreen('landing'); }
+      onConfirm: async () => { await logout(); showScreen('path'); }
     });
   });
 
@@ -1847,33 +1984,28 @@ async function generateChallenge() {
   }
 }
 
-// ISSUE 4 FIX: cancelActiveChallenge now handles BOTH challenge types
 function cancelActiveChallenge() {
-  // Cancel WhatsApp/code-based challenge
   if (_activeChallengeMatchId) {
     _unsubMatch();
     _activeChallengeMatchId = null;
     _currentChallenge       = null;
   }
 
-  // Cancel direct challenge (outgoing)
   if (_outgoingChallengeId) {
     _cancelOutgoingDirectChallenge();
-    return; // _cancelOutgoingDirectChallenge closes modal too
+    return;
   }
 
   closeChallengeModal();
   showToast('Challenge cancelled', 'info');
 }
 
-// ISSUE 4 FIX: Separate function to cancel an outgoing direct challenge
 function _cancelOutgoingDirectChallenge() {
   const matchId = _outgoingChallengeId;
-  _hideChallengePendingOverlay(); // clears _outgoingChallengeId
+  _hideChallengePendingOverlay();
   stopOutgoingChallengeListener();
 
   if (matchId) {
-    // Mark the match as cancelled in Firestore
     import('firebase/firestore').then(({ doc, updateDoc, serverTimestamp }) => {
       import('./firebase/config.js').then(({ db }) => {
         updateDoc(doc(db, 'matches', matchId), {
@@ -1927,18 +2059,10 @@ async function acceptChallengeByCode() {
   }
 }
 
-// ============================================
-// CHALLENGE SCREEN (legacy lobby — opens hub)
-// ============================================
-
 function initChallengeScreen() {
   showScreen('landing');
   openChallengeHub();
 }
-
-// ============================================
-// CHALLENGE USER FROM LEADERBOARD (WhatsApp code flow)
-// ============================================
 
 async function handleChallengeUser(opponentUid, opponentName) {
   const user = getCurrentUser();
@@ -2072,7 +2196,6 @@ function renderBattleResult(match) {
       </div>`).join('');
   }
 
-  // ── Rematch button ──
   const rematchBtn = el('battle-rematch-btn');
   if (rematchBtn) {
     const newBtn = rematchBtn.cloneNode(true);
@@ -2150,14 +2273,12 @@ function renderBattleResult(match) {
     });
   }
 
-  // ── Back to home ──
   const backBtn = el('battle-result-back-btn');
   if (backBtn) {
     const newBack = backBtn.cloneNode(true);
     backBtn.parentNode.replaceChild(newBack, backBtn);
     newBack.addEventListener('click', () => {
-      showScreen('landing');
-      initLandingScreen();
+      showScreen('path');
     });
   }
 }
@@ -2264,13 +2385,7 @@ function escapeHTML(str) {
 }
 
 // ============================================
-// GLOBAL SQ NAMESPACE
-// ============================================
-
-// ============================================
-// CANCEL ANY MATCH BY ID (from history card)
-// Called by the ✕ Cancel button on Active/Pending
-// history cards so users can clean up ghost matches.
+// CANCEL ANY MATCH BY ID
 // ============================================
 
 async function cancelMatchById(matchId) {
@@ -2287,7 +2402,6 @@ async function cancelMatchById(matchId) {
       cancelledBy: user.uid
     });
 
-    // Also clear _activeChallengeMatchId if it matches
     if (_activeChallengeMatchId === matchId) {
       _unsubMatch();
       _activeChallengeMatchId = null;
@@ -2299,13 +2413,16 @@ async function cancelMatchById(matchId) {
     }
 
     showToast('Match cancelled ✓', 'success', 2000);
-    // Reload history to reflect the change
     _loadBattleHistoryIntoHub(user.uid);
   } catch (e) {
     showToast('Could not cancel — check your connection', 'error');
     console.warn('[App] cancelMatchById failed:', e.message);
   }
 }
+
+// ============================================
+// GLOBAL SQ NAMESPACE
+// ============================================
 
 window.SQ = {
   switchAuthTab,
@@ -2327,5 +2444,7 @@ window.SQ = {
   directChallenge:            (uid, name) => handleDirectChallenge(uid, name),
   closeIncomingChallengeModal,
   cancelActiveChallenge,
-  cancelMatchById
+  cancelMatchById,
+  openDailyChallenge,
+  closeDailyModal
 };
