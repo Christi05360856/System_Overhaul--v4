@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="/styles/base.css" />
   <link rel="stylesheet" href="/styles/components.css" />
   <link rel="stylesheet" href="/styles/path.css" />
+  <link rel="stylesheet" href="/styles/onboarding.css" />
   <title>ScriptureQuest — Daily Bible Quiz</title>
 <base target="_blank">
 </head>
@@ -170,8 +171,8 @@
         <h2>ScriptureQuest</h2>
         <p>Master every book of the Bible — one passage at a time.</p>
         <button class="btn-primary btn-full btn-lg" style="margin-top:20px"
-                onclick="SQ.openAuthModal()">
-          <i class="fas fa-sign-in-alt"></i> Sign In to Begin
+        onclick="SQ.openAuthModal()">
+  <i class="fas fa-sign-in-alt"></i> Sign In / Sign Up
         </button>
       </div>
     </div>
@@ -826,6 +827,14 @@
       <!-- Support -->
       <div class="settings-group">
         <div class="settings-group-label">Support</div>
+        <div class="settings-row" style="cursor:pointer" id="settings-replay-tutorial-btn">
+  <div class="settings-row-icon blue">🎓</div>
+  <div class="settings-row-text">
+    <div class="settings-row-title">Replay Tutorial</div>
+    <div class="settings-row-sub">See the app walkthrough again</div>
+  </div>
+  <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:14px"></i>
+        </div>
         <div class="settings-row" style="cursor:pointer" id="whatsapp-contact-btn">
           <div class="settings-row-icon green">💬</div>
           <div class="settings-row-text">
