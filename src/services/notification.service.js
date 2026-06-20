@@ -1,8 +1,12 @@
 // ============================================
-// SCRIPTUREQUEST V4 — Notification Service
+// SCRIPTUREQUEST V5 — Notification Service
+//
 // Updates:
-//   + notifyRematchReady()   — push to opponent when rematch created
-//   + listenForRematchInvite() — realtime listener on old match for rematch code
+//   + notifyChallengeReceived()  — push to opponent when challenged
+//   + notifyBattleIncoming()     — push to opponent when battle starts
+//   + notifyStreakReminder()     — local streak reminder (client-side fallback)
+//   + notifyRematchReady()       — push to opponent when rematch created
+//   + listenForRematchInvite()   — realtime listener on old match for rematch code
 //   + checkPendingBattleResult() — exported for app.js to call on login
 //   + All existing functionality preserved
 // ============================================
@@ -103,7 +107,7 @@ export function initForegroundMessages() {
     showToast(`${title}: ${body}`, type === 'reward' ? 'success' : 'info', 6000);
     updateUnreadBadge(_unreadCount + 1);
 
-    // If it's a rematch notification and user is on battle-result screen,
+    // If it is a rematch notification and user is on battle-result screen,
     // auto-populate the join code input
     if (type === 'rematch' && payload.data?.code) {
       const codeInput = document.getElementById('challenge-code-input');
@@ -116,17 +120,94 @@ export function initForegroundMessages() {
 }
 
 // ============================================
+// CHALLENGE NOTIFICATION
+// Called when a user sends a challenge to another player.
+// Writes to Firestore so the Cloud Function picks it up.
+// ============================================
+
+export async function notifyChallengeReceived(opponentUid, challengerName, challengeCode, challengeId) {
+  try {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    await setDoc(doc(db, 'pendingPushes', `${opponentUid}_challenge_${challengeId}`), {
+      uid:       opponentUid,
+      title:     '⚔️ New Challenge!',
+      body:      `${challengerName || 'Someone'} challenged you to a battle. Accept now!`,
+      data: {
+        type:        'challenge',
+        challengeId: challengeId,
+        code:        challengeCode,
+        url:         `/?challenge=${challengeCode}`
+      },
+      createdAt: serverTimestamp(),
+      sent:      false
+    });
+
+    console.log('[Notifications] Challenge notification queued for', opponentUid);
+  } catch (err) {
+    console.warn('[Notifications] notifyChallengeReceived error:', err.message);
+  }
+}
+
+// ============================================
+// BATTLE NOTIFICATION
+// Called when a battle match is created.
+// Writes to Firestore so the Cloud Function picks it up.
+// ============================================
+
+export async function notifyBattleIncoming(opponentUid, creatorName, matchId) {
+  try {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    await setDoc(doc(db, 'pendingPushes', `${opponentUid}_battle_${matchId}`), {
+      uid:       opponentUid,
+      title:     '⚔️ Battle Incoming!',
+      body:      `${creatorName || 'Someone'} started a battle with you. Join now!`,
+      data: {
+        type:      'battle',
+        matchId:   matchId,
+        creatorId: user.uid,
+        url:       `/?battle=${matchId}`
+      },
+      createdAt: serverTimestamp(),
+      sent:      false
+    });
+
+    console.log('[Notifications] Battle notification queued for', opponentUid);
+  } catch (err) {
+    console.warn('[Notifications] notifyBattleIncoming error:', err.message);
+  }
+}
+
+// ============================================
+// STREAK REMINDER NOTIFICATION (client-side)
+// Local toast as a fallback when push is not available.
+// ============================================
+
+export function notifyStreakReminder(timeOfDay) {
+  if (timeOfDay === 'morning') {
+    showToast(
+      '🔥 Good morning! Take your daily quiz to keep your streak going.',
+      'info',
+      6000
+    );
+  } else if (timeOfDay === 'evening') {
+    showToast(
+      '⏰ You started learning today but have not finished a round yet. Complete one now to keep your streak!',
+      'warning',
+      6000
+    );
+  }
+}
+
+// ============================================
 // REMATCH NOTIFICATION
 // Sends push to opponent + appends message to old match doc
 // Called by app.js after sendRematch() returns
 // ============================================
 
-/**
- * @param {string} oldMatchId   — the completed match both players just finished
- * @param {string} newCode      — the new rematch challenge code
- * @param {string} newMatchId   — the new match document id
- * @param {string} challengerName — display name of person requesting rematch
- */
 export async function notifyRematchReady(oldMatchId, newCode, newMatchId, challengerName) {
   try {
     const user = auth.currentUser;
@@ -245,7 +326,7 @@ export function unsubscribeRematchListener() {
 }
 
 // ============================================
-// ISSUE 4 — CHECK PENDING BATTLE ON LOGIN
+// CHECK PENDING BATTLE ON LOGIN
 // Export so app.js can call it after auth
 // ============================================
 
@@ -266,7 +347,7 @@ export async function checkPendingBattleResult(onResultReady) {
 
     } else if (match.status === 'active') {
       // Still in progress — subscribe silently
-      showToast('Still waiting for your opponent to finish the battle…', 'info', 4000);
+      showToast('Still waiting for your opponent to finish the battle...', 'info', 4000);
 
       const unsub = onSnapshot(doc(db, 'matches', pendingMatchId), s => {
         if (!s.exists()) return;
@@ -458,6 +539,7 @@ export async function updateNotificationPrefs(uid, prefs) {
 export default {
   requestPushPermission, savePushToken, removePushToken,
   initForegroundMessages,
+  notifyChallengeReceived, notifyBattleIncoming, notifyStreakReminder,
   notifyRematchReady, listenForRematchInvite, unsubscribeRematchListener,
   checkPendingBattleResult,
   subscribeToInbox, unsubscribeFromInbox, markAsRead, markAllAsRead,
