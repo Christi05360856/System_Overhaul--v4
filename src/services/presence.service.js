@@ -1,12 +1,12 @@
 // ============================================
-// SCRIPTUREQUEST V4 — Presence Service
+// SCRIPTUREQUEST V5 — Presence Service
 // Tracks which users are currently online.
 //
 // HOW IT WORKS:
 //   - When user logs in, startPresenceHeartbeat()
 //     writes their lastSeen timestamp to Firestore
 //     every 60 seconds and on page visibility change
-//   - When user closes/backgrounds the app,
+//   - When user closes or backgrounds the app,
 //     stopPresenceHeartbeat() clears the timer
 //     and writes a final offline timestamp
 //   - The leaderboard reads each entry's UID and
@@ -14,9 +14,8 @@
 //   - A pulsing green dot is shown if online
 //
 // WHY FIRESTORE (not Realtime Database):
-//   You may not have RTDB enabled. Firestore
-//   presence is slightly less instant (seconds vs
-//   milliseconds) but perfectly fine for this use.
+//   Firestore presence is slightly less instant
+//   (seconds vs milliseconds) but works well here.
 // ============================================
 
 import { doc, setDoc, serverTimestamp, onSnapshot,
@@ -84,7 +83,7 @@ async function _writePresence(uid, isOnline) {
       updatedAt: serverTimestamp()
     }, { merge: true });
   } catch (e) {
-    // Non-fatal — don't let presence errors break the app
+    // Non-fatal — do not let presence errors break the app
     console.warn('[Presence] Write error:', e.message);
   }
 }
@@ -97,6 +96,17 @@ async function _writePresence(uid, isOnline) {
 export function isUserOnline(lastSeenMillis) {
   if (!lastSeenMillis) return false;
   return Date.now() - lastSeenMillis < PRESENCE_ONLINE_THRESHOLD_MS;
+}
+
+// ============================================
+// CHECK IF A USER IS ACTIVE (green dot showing)
+// This means they are online AND actively using the app.
+// Used for battle notifications.
+// ============================================
+
+export function isUserActive(lastSeenMillis, isOnlineFlag) {
+  // Active = online heartbeat within threshold and explicitly marked online
+  return isUserOnline(lastSeenMillis) && isOnlineFlag !== false;
 }
 
 // ============================================
@@ -152,6 +162,7 @@ export function getPresenceDotHtml(isOnline) {
 
 export default {
   startPresenceHeartbeat, stopPresenceHeartbeat,
-  isUserOnline, subscribeToPresenceList, unsubscribePresenceList,
+  isUserOnline, isUserActive,
+  subscribeToPresenceList, unsubscribePresenceList,
   getPresenceDotHtml
 };
