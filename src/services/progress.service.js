@@ -2,8 +2,11 @@
 // SCRIPTUREQUEST V5 — Progress Service
 // Reads and writes /userProgress/{uid} in Firestore.
 // Handles round submission, scoring against the
-// 70% pass threshold, and cascading completion
+// pass threshold, and cascading completion
 // checks (round -> lesson -> unit -> section).
+//
+// BUG FIX: Write errors are now re-thrown so the UI
+// can show "submission failed" instead of pretending success.
 // ============================================
 
 import { db, auth } from '../firebase/config.js';
@@ -12,15 +15,15 @@ import {
 } from 'firebase/firestore';
 import { getRound, parseRoundId, getPathStructure, computeLockState } from './path.service.js';
 
-const PASS_THRESHOLD = 70; // % — Blueprint Phase 0 decision
+const PASS_THRESHOLD = 70; // % — requires 5/7 correct
 
-// XP constants (Blueprint Phase 0 — scoring split)
+// XP constants
 const XP_PER_CORRECT      = 10;
 const XP_ROUND_COMPLETE   = 50;
 const XP_LESSON_COMPLETE  = 100;
 const XP_UNIT_COMPLETE    = 200;
 const XP_SECTION_COMPLETE = 1000;
-const XP_PERFECT_ROUND    = 150; // awarded INSTEAD OF the round-complete bonus on 100%
+const XP_PERFECT_ROUND    = 150; // awarded INSTEAD of round-complete bonus on 100%
 
 // ============================================
 // FETCH USER PROGRESS
@@ -137,6 +140,8 @@ export async function submitRound(roundId, userAnswers) {
   }
 
   // ── Write to Firestore ──
+  // BUG FIX: Re-throw write errors so the UI shows "submission failed"
+  // instead of pretending success.
   try {
     await setDoc(doc(db, 'userProgress', user.uid), {
       completedRounds:   updatedCompletedRounds,
@@ -150,7 +155,7 @@ export async function submitRound(roundId, userAnswers) {
       updatedAt:         serverTimestamp()
     }, { merge: true });
 
-    // ── Also feed XP into userStats for badges/level system (Blueprint: path XP feeds badges) ──
+    // ── Also feed XP into userStats for badges/level system ──
     if (passed && shouldUpdateRound) {
       await _addXpToUserStats(user.uid, xpEarned +
         (cascadeResult.lessonComplete  ? XP_LESSON_COMPLETE  : 0) +
@@ -160,6 +165,7 @@ export async function submitRound(roundId, userAnswers) {
     }
   } catch (e) {
     console.error('[Progress] Write error:', e.message);
+    throw new Error('Submission failed. Please check your connection and try again.');
   }
 
   return {
@@ -221,8 +227,6 @@ function _checkCascadeCompletion(roundId, lessonKey, bookCode, completedRounds) 
 
 // ============================================
 // FEED PATH XP INTO userStats
-// (same collection the Daily Challenge and
-// Battle XP write into — shared badge/level system)
 // ============================================
 
 async function _addXpToUserStats(uid, xpAmount) {
@@ -243,6 +247,7 @@ async function _addXpToUserStats(uid, xpAmount) {
     }, { merge: true });
   } catch (e) {
     console.warn('[Progress] userStats XP feed error:', e.message);
+    // Non-fatal — don't break the round result for a stats update failure
   }
 }
 
