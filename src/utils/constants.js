@@ -100,3 +100,4 @@ export const PATH_SCREENS = {
   UNIT_COMPLETE:   'unit-complete',
   SECTION_COMPLETE:'section-complete'
 };
+export const ONBOARDING_SEEN_KEY = 'sq_onboarding_seen_v1';
