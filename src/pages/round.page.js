@@ -27,7 +27,7 @@ const QUESTION_TYPE_LABELS = {
   HOW_MANY:      'How Many',
   SEQUENCE:      'In Order',
   EXACT_WORDING: 'Exact Words',
-  ABSENCE:       'What's Missing'
+  ABSENCE:       'What\\'s Missing'
 };
 
 // Positive / negative feedback emojis
