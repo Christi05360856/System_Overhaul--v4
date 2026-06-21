@@ -1,16 +1,9 @@
 // ============================================
-// SCRIPTUREQUEST V5 — Onboarding Sequence (v3)
+// SCRIPTUREQUEST V5 — Onboarding Sequence (v4)
 // ============================================
-// CHANGE FROM PREVIOUS VERSION:
-// Two slides — Leaderboard and Profile — now render
-// a small static MOCKUP panel with labeled callouts
-// instead of the generic single-icon-and-text template.
-// This is still pure illustration (not real, live DOM —
-// it's a hand-built mini mockup), so it carries zero risk
-// of breaking or being broken by the real app screens.
-// All other 7 slides are UNCHANGED from the previous
-// version (Welcome, Path, Daily, Battle, Rewards,
-// Settings, Closing all still use the simple template).
+// CHANGES FROM v3:
+// 1. Added clearOnboardingSeen() export for Replay Tutorial feature
+// 2. Added getOnboardingSeenKey() helper for external modules
 // ============================================
 
 import { ONBOARDING_SEEN_KEY } from '../utils/constants.js';
@@ -88,7 +81,7 @@ let _onDone       = null;
 const el = id => document.getElementById(id);
 
 // ============================================
-// PUBLIC API (unchanged signatures)
+// PUBLIC API
 // ============================================
 
 export function shouldShowOnboarding() {
@@ -101,6 +94,16 @@ export function shouldShowOnboarding() {
 
 export function markOnboardingSeen() {
   try { localStorage.setItem(ONBOARDING_SEEN_KEY, 'true'); } catch {}
+}
+
+// ── NEW v4: Clear the seen flag so onboarding can be replayed ──
+export function clearOnboardingSeen() {
+  try { localStorage.removeItem(ONBOARDING_SEEN_KEY); } catch {}
+}
+
+// ── NEW v4: Let external modules know the key (optional utility) ──
+export function getOnboardingSeenKey() {
+  return ONBOARDING_SEEN_KEY;
 }
 
 export function initOnboardingScreen(onDone) {
@@ -143,9 +146,6 @@ function _renderSlide() {
     ).join('');
   }
 
-  // Re-wire buttons since #onb-slide-area's innerHTML replacement
-  // doesn't touch the bottom bar, but we re-render fresh each time
-  // for safety against stale listeners on repeated visits.
   _wireButtons();
 
   const contentEl = el('onb-slide-content') || areaEl?.firstElementChild;
@@ -301,6 +301,8 @@ function _esc(str) {
 export default {
   shouldShowOnboarding,
   markOnboardingSeen,
+  clearOnboardingSeen,
+  getOnboardingSeenKey,
   initOnboardingScreen
 };
-    
+      
