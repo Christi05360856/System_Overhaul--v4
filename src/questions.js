@@ -6220,4 +6220,1954 @@ export const questions = [
     "difficulty": "medium",
     "verseReference": ""
   }
+ {
+    "question": "What did God command Abraham to do with his son Isaac on Mount Moriah before providing a ram instead?",
+    "options": [
+      "Offer him as a sacrifice",
+      "Dedicate him to temple service",
+      "Send him away to a far country",
+      "Circumcise him as a sign of the covenant"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Genesis 22:2"
+  },
+  {
+    "question": "Which judge of Israel defeated the Midianites with only 300 men after God reduced his army?",
+    "options": [
+      "Ehud",
+      "Gideon",
+      "Othniel",
+      "Deborah"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Judges 7:7"
+  },
+  {
+    "question": "What did Ruth say to Naomi to express her loyalty when Naomi urged her to return to Moab?",
+    "options": [
+      "I will pray for you always",
+      "I cannot leave my homeland",
+      "Where you go I will go, your people shall be my people",
+      "Let me first bury my husband properly"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Ruth 1:16"
+  },
+  {
+    "question": "Who succeeded Moses as the leader of the Israelites after his death?",
+    "options": [
+      "Caleb",
+      "Aaron",
+      "Eleazar",
+      "Joshua"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Deuteronomy 34:9"
+  },
+  {
+    "question": "What did the Lord use to test Gideon's army at the water, choosing only those who lapped water like a dog?",
+    "options": [
+      "How they drank the water",
+      "Their willingness to fight",
+      "Their tribal lineage",
+      "Their weapons of choice"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "Judges 7:5-6"
+  },
+  {
+    "question": "Which prophet confronted King David after his sin with Bathsheba using a parable about a poor man's lamb?",
+    "options": [
+      "Samuel",
+      "Nathan",
+      "Gad",
+      "Elijah"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "2 Samuel 12:1"
+  },
+  {
+    "question": "What happened to Lot's wife when she looked back at the destruction of Sodom?",
+    "options": [
+      "She was struck blind",
+      "She fell into a deep sleep",
+      "She turned into a pillar of salt",
+      "She was consumed by fire"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Genesis 19:26"
+  },
+  {
+    "question": "Who interpreted Pharaoh's dreams about seven fat cows and seven lean cows?",
+    "options": [
+      "Moses",
+      "Daniel",
+      "Aaron",
+      "Joseph"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Genesis 41:25-27"
+  },
+  {
+    "question": "What was unusual about how the walls of Jericho fell during Joshua's conquest?",
+    "options": [
+      "They collapsed after seven days of marching and a trumpet blast",
+      "They were destroyed by an earthquake",
+      "Spies set them on fire from inside",
+      "An army of locusts weakened the foundations"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Joshua 6:20"
+  },
+  {
+    "question": "Which Old Testament queen risked her life by approaching the king uninvited to save her people from Haman's plot?",
+    "options": [
+      "Vashti",
+      "Esther",
+      "Athaliah",
+      "Jezebel"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Esther 4:16"
+  },
+  {
+    "question": "What did Elisha do to the borrowed axe head that fell into the Jordan River?",
+    "options": [
+      "Dove in to retrieve it himself",
+      "Asked Elijah's spirit to find it",
+      "Made it float by throwing a stick into the water",
+      "Sent servants downstream to search"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "2 Kings 6:6"
+  },
+  {
+    "question": "Who was sold into slavery by his own brothers out of jealousy over a special coat?",
+    "options": [
+      "Benjamin",
+      "Reuben",
+      "Judah",
+      "Joseph"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Genesis 37:28"
+  },
+  {
+    "question": "What did God provide daily for the Israelites in the wilderness besides manna, which they gathered in the evening?",
+    "options": [
+      "Quail",
+      "Fresh water from a rock alone",
+      "Wild honey",
+      "Figs from desert trees"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Exodus 16:13"
+  },
+  {
+    "question": "Which king of Israel asked God for wisdom instead of riches or long life, and was granted both?",
+    "options": [
+      "Saul",
+      "Solomon",
+      "David",
+      "Rehoboam"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "1 Kings 3:9-13"
+  },
+  {
+    "question": "What was the sign God gave Moses at the burning bush to prove He had sent him?",
+    "options": [
+      "Manna falling from heaven",
+      "A pillar of cloud by day",
+      "A rod that turned into a serpent",
+      "Water turning to blood instantly"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Exodus 4:2-3"
+  },
+  {
+    "question": "Who was struck dead for touching the Ark of the Covenant to steady it when the oxen stumbled?",
+    "options": [
+      "Eli",
+      "Phinehas",
+      "Hophni",
+      "Uzzah"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "2 Samuel 6:6-7"
+  },
+  {
+    "question": "What did Naaman the Syrian commander have to do to be healed of his leprosy according to Elisha's instructions?",
+    "options": [
+      "Dip seven times in the Jordan River",
+      "Offer a sacrifice at the temple",
+      "Fast for forty days",
+      "Be anointed with holy oil by a priest"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "2 Kings 5:10"
+  },
+  {
+    "question": "Which prophet was taken up to heaven in a whirlwind by a chariot of fire?",
+    "options": [
+      "Elisha",
+      "Elijah",
+      "Isaiah",
+      "Ezekiel"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "2 Kings 2:11"
+  },
+  {
+    "question": "What punishment did King Nebuchadnezzar endure after boasting about the glory of Babylon?",
+    "options": [
+      "He was struck with blindness",
+      "He was exiled to a foreign land",
+      "He lived like a wild animal eating grass for seven years",
+      "He lost his kingdom permanently"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "Daniel 4:33"
+  },
+  {
+    "question": "Who was the only woman judge of Israel mentioned in the book of Judges?",
+    "options": [
+      "Jael",
+      "Miriam",
+      "Huldah",
+      "Deborah"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Judges 4:4"
+  },
+  {
+    "question": "Which two brothers led the Israelites out of Egypt, with one acting as spokesman for the other?",
+    "options": [
+      "Moses and Joshua",
+      "Aaron and Joshua",
+      "Caleb and Joshua",
+      "Moses and Aaron"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Exodus 4:14-16"
+  },
+  {
+    "question": "What did Jacob give Joseph that made his other brothers jealous of him?",
+    "options": [
+      "A coat of many colours",
+      "A herd of sheep",
+      "His father's blessing publicly",
+      "The family birthright officially"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Genesis 37:3"
+  },
+  {
+    "question": "Who was the prophet that anointed both Saul and David as kings of Israel?",
+    "options": [
+      "Nathan",
+      "Samuel",
+      "Gad",
+      "Ahijah"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "1 Samuel 16:13"
+  },
+  {
+    "question": "What weapon did David use to defeat the giant Goliath?",
+    "options": [
+      "A sword taken from a soldier",
+      "Bow and arrow",
+      "A sling and a stone",
+      "His bare hands alone"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "1 Samuel 17:50"
+  },
+  {
+    "question": "Why was Moses not allowed to enter the Promised Land despite leading Israel for forty years?",
+    "options": [
+      "He doubted God's promise too often",
+      "He married a foreign wife",
+      "He refused to lead the final battle",
+      "He struck the rock instead of speaking to it as commanded"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "Numbers 20:11-12"
+  },
+  {
+    "question": "Who was the Moabite woman who became the great-grandmother of King David?",
+    "options": [
+      "Ruth",
+      "Rahab",
+      "Orpah",
+      "Tamar"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Ruth 4:17"
+  },
+  {
+    "question": "What happened to Aaron's rod when it was placed before the Ark along with the rods of the other tribal leaders?",
+    "options": [
+      "It turned into a snake",
+      "It budded, blossomed and produced almonds",
+      "It burst into flame",
+      "It split into two pieces"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "Numbers 17:8"
+  },
+  {
+    "question": "Who was the king of Israel that built the first temple in Jerusalem?",
+    "options": [
+      "David",
+      "Saul",
+      "Solomon",
+      "Rehoboam"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "1 Kings 6:1"
+  },
+  {
+    "question": "What did the Israelites build while Moses was on Mount Sinai receiving the Ten Commandments, angering God?",
+    "options": [
+      "A new altar for sacrifices",
+      "A second tabernacle",
+      "Idols of Egyptian gods",
+      "A golden calf to worship"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Exodus 32:4"
+  },
+  {
+    "question": "Which prophet married a unfaithful woman named Gomer as a living illustration of God's relationship with unfaithful Israel?",
+    "options": [
+      "Hosea",
+      "Amos",
+      "Joel",
+      "Micah"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "Hosea 1:2-3"
+  },
+  {
+    "question": "What sign did Hezekiah ask for to confirm God would heal him and add fifteen years to his life?",
+    "options": [
+      "A rainbow in the sky",
+      "The sun's shadow moving backward",
+      "Rain in a season of drought",
+      "A voice speaking from heaven"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "2 Kings 20:9-11"
+  },
+  {
+    "question": "Who was thrown into a pit by his brothers and later became second-in-command over all of Egypt?",
+    "options": [
+      "Benjamin",
+      "Reuben",
+      "Joseph",
+      "Simeon"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Genesis 41:41"
+  },
+  {
+    "question": "What did Jonah do when God first told him to go preach to Nineveh?",
+    "options": [
+      "He obeyed immediately",
+      "He asked God for more time",
+      "He sent a messenger instead",
+      "He fled in the opposite direction by ship"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Jonah 1:3"
+  },
+  {
+    "question": "Which king tore his royal robes and humbled himself after hearing the words of the Book of the Law that had been found?",
+    "options": [
+      "Josiah",
+      "Hezekiah",
+      "Manasseh",
+      "Jehoshaphat"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "2 Kings 22:11"
+  },
+  {
+    "question": "What did Daniel and his friends choose not to eat while in training in the Babylonian king's court?",
+    "options": [
+      "Bread and water",
+      "The king's rich food and wine",
+      "Fruit and honey",
+      "Meat only, but allowed wine"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Daniel 1:8"
+  },
+  {
+    "question": "Who did God send to deliver Israel from the Philistines, known for his great strength tied to his uncut hair?",
+    "options": [
+      "Gideon",
+      "Ehud",
+      "Samson",
+      "Jephthah"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Judges 13:5"
+  },
+  {
+    "question": "What is the name of the garden where Adam and Eve lived before their fall?",
+    "options": [
+      "Gethsemane",
+      "Canaan",
+      "Moriah",
+      "Eden"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Genesis 2:8"
+  },
+  {
+    "question": "What did the serpent tempt Eve to eat in the Garden of Eden?",
+    "options": [
+      "Fruit from the tree of the knowledge of good and evil",
+      "Fruit from the tree of life",
+      "A pomegranate from a forbidden vine",
+      "Grapes from a cursed vineyard"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Genesis 3:6"
+  },
+  {
+    "question": "Who was Cain's brother, whom he killed out of jealousy after God favoured his offering?",
+    "options": [
+      "Seth",
+      "Abel",
+      "Enoch",
+      "Lamech"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Genesis 4:8"
+  },
+  {
+    "question": "How many people, according to Genesis, were saved on Noah's ark?",
+    "options": [
+      "Six",
+      "Seven",
+      "Eight",
+      "Ten"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Genesis 7:13"
+  },
+  {
+    "question": "What did God do to confuse the people building the Tower of Babel and scatter them?",
+    "options": [
+      "Sent a great flood",
+      "Destroyed the tower with fire",
+      "Sent a plague among them",
+      "Confused their language"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Genesis 11:7"
+  },
+  {
+    "question": "Who was Abraham's nephew who chose to live near Sodom before its destruction?",
+    "options": [
+      "Lot",
+      "Ishmael",
+      "Eliezer",
+      "Laban"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Genesis 13:11"
+  },
+  {
+    "question": "What was the name of Abraham's son born to Hagar, his wife's servant?",
+    "options": [
+      "Isaac",
+      "Ishmael",
+      "Midian",
+      "Esau"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Genesis 16:15"
+  },
+  {
+    "question": "Who tricked his father Isaac into giving him the blessing meant for his older brother Esau?",
+    "options": [
+      "Laban",
+      "Reuben",
+      "Jacob",
+      "Levi"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Genesis 27:19"
+  },
+  {
+    "question": "What did Jacob do at Bethel that gave the place its name, meaning 'house of God'?",
+    "options": [
+      "Built an altar and offered a sacrifice",
+      "Wrestled with an angel until dawn",
+      "Buried his father there",
+      "Saw a vision of a stairway to heaven"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "Genesis 28:12-19"
+  },
+  {
+    "question": "How many years did Jacob work for Laban in total to marry both Leah and Rachel?",
+    "options": [
+      "Fourteen years",
+      "Seven years",
+      "Twenty years",
+      "Ten years"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "Genesis 31:41"
+  },
+  {
+    "question": "What plague was the final and most devastating one sent upon Egypt before Pharaoh let Israel go?",
+    "options": [
+      "Darkness over the land",
+      "Death of the firstborn",
+      "Hail and fire mixed",
+      "A swarm of locusts"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Exodus 12:29"
+  },
+  {
+    "question": "What did the Israelites mark on their doorposts so the angel of death would pass over their homes?",
+    "options": [
+      "Ashes from the altar",
+      "Oil mixed with wine",
+      "The blood of a lamb",
+      "A written prayer"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Exodus 12:7"
+  },
+  {
+    "question": "What miracle allowed the Israelites to cross safely while fleeing Pharaoh's army?",
+    "options": [
+      "The Jordan River parted",
+      "A bridge of stone appeared",
+      "A great fog hid them",
+      "The Red Sea parted"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Exodus 14:21-22"
+  },
+  {
+    "question": "How many commandments did God give Moses on Mount Sinai?",
+    "options": [
+      "Ten",
+      "Seven",
+      "Twelve",
+      "Fifteen"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "easy",
+    "verseReference": "Exodus 20"
+  },
+  {
+    "question": "Who was sent with eleven others to spy out the Promised Land, but only he and Joshua gave a faithful report?",
+    "options": [
+      "Phinehas",
+      "Caleb",
+      "Eleazar",
+      "Nahshon"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "Numbers 13:30"
+  },
+  {
+    "question": "Who was the priest's two sons who were struck dead for offering 'unauthorised fire' before the Lord?",
+    "options": [
+      "Hophni and Phinehas",
+      "Eleazar and Ithamar",
+      "Nadab and Abihu",
+      "Korah and Dathan"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "Leviticus 10:1-2"
+  },
+  {
+    "question": "Who led a rebellion against Moses and Aaron's leadership and was swallowed up by the earth as judgment?",
+    "options": [
+      "Balaam",
+      "Og",
+      "Sihon",
+      "Korah"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "Numbers 16:32"
+  },
+  {
+    "question": "What animal did God use to speak to the prophet Balaam when he was on his way to curse Israel?",
+    "options": [
+      "A donkey",
+      "A serpent",
+      "An ox",
+      "A raven"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Numbers 22:28"
+  },
+  {
+    "question": "What did the Israelites do to defeat the city of Ai on their second attempt, after their first failure?",
+    "options": [
+      "Surrounded the city for forty days",
+      "Used an ambush strategy",
+      "Sent spies to open the gates",
+      "Negotiated peacefully with the king"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "Joshua 8:3-7"
+  },
+  {
+    "question": "Who hid the Israelite spies in Jericho and was spared when the city fell because of her faith?",
+    "options": [
+      "Deborah",
+      "Jael",
+      "Rahab",
+      "Achsah"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "Joshua 6:25"
+  },
+  {
+    "question": "What did Achan do that brought defeat upon Israel at the battle of Ai?",
+    "options": [
+      "He refused to fight",
+      "He betrayed Israel's battle plans",
+      "He worshipped a foreign idol publicly",
+      "He took forbidden plunder from Jericho"
+    ],
+    "correctAnswer": 3,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "Joshua 7:21"
+  },
+  {
+    "question": "What did Hannah promise God if He would give her a son, after years of being unable to conceive?",
+    "options": [
+      "She would dedicate him to the Lord's service",
+      "She would give half her wealth to the temple",
+      "She would build an altar in his honour",
+      "She would fast for the rest of her life"
+    ],
+    "correctAnswer": 0,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "1 Samuel 1:11"
+  },
+  {
+    "question": "Who was the boy who heard God calling his name in the night while serving under the priest Eli?",
+    "options": [
+      "David",
+      "Samuel",
+      "Josiah",
+      "Joash"
+    ],
+    "correctAnswer": 1,
+    "category": "Old Testament",
+    "difficulty": "medium",
+    "verseReference": "1 Samuel 3:4"
+  },
+  {
+    "question": "What happened to the Ark of the Covenant when the Philistines placed it in the temple of their god Dagon?",
+    "options": [
+      "It remained unaffected",
+      "It caused the temple to collapse instantly",
+      "Dagon's statue fell face down before it twice",
+      "The Philistines burned it immediately"
+    ],
+    "correctAnswer": 2,
+    "category": "Old Testament",
+    "difficulty": "hard",
+    "verseReference": "1 Samuel 5:3-4"
+  },
+  {
+    "question": "According to the Gospels, who was the first to discover the empty tomb on the morning of the resurrection?",
+    "options": [
+      "Mary Magdalene and the other women",
+      "Peter and John",
+      "The Roman guards",
+      "Joseph of Arimathea"
+    ],
+    "correctAnswer": 0,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "Matthew 28:1-7"
+  },
+  {
+    "question": "What did Jesus say was the greatest commandment in the Law?",
+    "options": [
+      "Honour your father and mother",
+      "Love the Lord your God with all your heart",
+      "Do not commit adultery",
+      "Keep the Sabbath holy"
+    ],
+    "correctAnswer": 1,
+    "category": "Gospels",
+    "difficulty": "easy",
+    "verseReference": "Matthew 22:37-38"
+  },
+  {
+    "question": "Who climbed a sycamore tree to see Jesus because he was too short to see over the crowd?",
+    "options": [
+      "Matthew",
+      "Nicodemus",
+      "Zacchaeus",
+      "Bartimaeus"
+    ],
+    "correctAnswer": 2,
+    "category": "Gospels",
+    "difficulty": "easy",
+    "verseReference": "Luke 19:4"
+  },
+  {
+    "question": "What did Jesus do when He found merchants selling animals and money changers in the temple courts?",
+    "options": [
+      "Reported them to the religious leaders",
+      "Quietly left and prayed elsewhere",
+      "Taught them about generosity instead",
+      "Overturned their tables and drove them out"
+    ],
+    "correctAnswer": 3,
+    "category": "Gospels",
+    "difficulty": "easy",
+    "verseReference": "John 2:15"
+  },
+  {
+    "question": "In the parable of the Good Samaritan, who passed by the wounded man without helping before the Samaritan stopped?",
+    "options": [
+      "A priest and a Levite",
+      "A tax collector and a soldier",
+      "A Pharisee and a scribe",
+      "Two merchants travelling together"
+    ],
+    "correctAnswer": 0,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "Luke 10:31-32"
+  },
+  {
+    "question": "What miracle did Jesus perform that fed a crowd using only five loaves and two fish?",
+    "options": [
+      "Feeding of the 4,000",
+      "Feeding of the 5,000",
+      "The wedding feast miracle",
+      "The multiplication at Capernaum"
+    ],
+    "correctAnswer": 1,
+    "category": "Gospels",
+    "difficulty": "easy",
+    "verseReference": "John 6:9-13"
+  },
+  {
+    "question": "Who doubted the resurrection of Jesus until he could physically touch His wounds?",
+    "options": [
+      "Peter",
+      "James",
+      "Thomas",
+      "Andrew"
+    ],
+    "correctAnswer": 2,
+    "category": "Gospels",
+    "difficulty": "easy",
+    "verseReference": "John 20:25"
+  },
+  {
+    "question": "What did Jesus say to the storm on the Sea of Galilee to calm it while His disciples panicked?",
+    "options": [
+      "Be still",
+      "Fear not, for I am here",
+      "Let it be calm",
+      "Peace, be still"
+    ],
+    "correctAnswer": 3,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "Mark 4:39"
+  },
+  {
+    "question": "Who anointed Jesus' feet with expensive perfume and wiped them with her hair before His death?",
+    "options": [
+      "Mary of Bethany",
+      "Martha",
+      "Mary Magdalene",
+      "Joanna"
+    ],
+    "correctAnswer": 0,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "John 12:3"
+  },
+  {
+    "question": "What was the response of the crowd when Jesus asked them to cast the first stone at the woman caught in adultery?",
+    "options": [
+      "They all stoned her together",
+      "They left one by one, beginning with the oldest",
+      "They demanded a trial first",
+      "They asked the Pharisees to decide"
+    ],
+    "correctAnswer": 1,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "John 8:9"
+  },
+  {
+    "question": "Who carried Jesus' cross part of the way to Golgotha after Jesus could no longer bear it alone?",
+    "options": [
+      "Joseph of Arimathea",
+      "Nicodemus",
+      "Simon of Cyrene",
+      "Barabbas"
+    ],
+    "correctAnswer": 2,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "Matthew 27:32"
+  },
+  {
+    "question": "What did the angel say to the women at the empty tomb when they came looking for Jesus' body?",
+    "options": [
+      "He has gone ahead to Jerusalem",
+      "Wait here until He returns",
+      "Tell no one what you have seen",
+      "He is not here, He has risen"
+    ],
+    "correctAnswer": 3,
+    "category": "Gospels",
+    "difficulty": "easy",
+    "verseReference": "Matthew 28:6"
+  },
+  {
+    "question": "Which two disciples recognised the risen Jesus on the road to Emmaus when He broke bread with them?",
+    "options": [
+      "Two unnamed disciples, one called Cleopas",
+      "Peter and John",
+      "James and Thaddaeus",
+      "Andrew and Philip"
+    ],
+    "correctAnswer": 0,
+    "category": "Gospels",
+    "difficulty": "hard",
+    "verseReference": "Luke 24:18"
+  },
+  {
+    "question": "What did John the Baptist call Jesus when he saw Him approaching at the Jordan River?",
+    "options": [
+      "The Son of Man",
+      "The Lamb of God",
+      "The Light of the World",
+      "The Bread of Life"
+    ],
+    "correctAnswer": 1,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "John 1:29"
+  },
+  {
+    "question": "Who was the Roman governor who washed his hands to declare himself innocent of Jesus' blood?",
+    "options": [
+      "Herod Antipas",
+      "Felix",
+      "Pontius Pilate",
+      "Festus"
+    ],
+    "correctAnswer": 2,
+    "category": "Gospels",
+    "difficulty": "easy",
+    "verseReference": "Matthew 27:24"
+  },
+  {
+    "question": "What did Jesus say to His disciples just before His ascension into heaven, commissioning them?",
+    "options": [
+      "Stay in Jerusalem and wait quietly",
+      "Rebuild the temple in My name",
+      "Return to your homes in peace",
+      "Go and make disciples of all nations"
+    ],
+    "correctAnswer": 3,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "Matthew 28:19"
+  },
+  {
+    "question": "Who was the tax collector that Jesus called to follow Him, leaving his tax booth immediately?",
+    "options": [
+      "Matthew",
+      "Zacchaeus",
+      "Levi the elder",
+      "Simon"
+    ],
+    "correctAnswer": 0,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "Matthew 9:9"
+  },
+  {
+    "question": "What did Jesus tell Nicodemus was necessary to see the kingdom of God?",
+    "options": [
+      "Strict obedience to the Law",
+      "To be born again",
+      "Generous giving to the poor",
+      "Public confession of sin"
+    ],
+    "correctAnswer": 1,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "John 3:3"
+  },
+  {
+    "question": "Who betrayed Jesus with a kiss in the Garden of Gethsemane?",
+    "options": [
+      "Peter",
+      "Thomas",
+      "Judas Iscariot",
+      "John"
+    ],
+    "correctAnswer": 2,
+    "category": "Gospels",
+    "difficulty": "easy",
+    "verseReference": "Luke 22:47-48"
+  },
+  {
+    "question": "What did Jesus say while hanging on the cross about those who crucified Him?",
+    "options": [
+      "Let them be judged accordingly",
+      "They shall answer for this",
+      "Remember this day forever",
+      "Father, forgive them, for they know not what they do"
+    ],
+    "correctAnswer": 3,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "Luke 23:34"
+  },
+  {
+    "question": "Who was the disciple that Jesus loved, traditionally believed to have written the fourth Gospel?",
+    "options": [
+      "John",
+      "Peter",
+      "James",
+      "Andrew"
+    ],
+    "correctAnswer": 0,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "John 21:20"
+  },
+  {
+    "question": "In the parable of the lost sheep, how many sheep did the shepherd leave behind to search for the one that was lost?",
+    "options": [
+      "Fifty",
+      "Ninety-nine",
+      "Ten",
+      "One hundred and ten"
+    ],
+    "correctAnswer": 1,
+    "category": "Gospels",
+    "difficulty": "easy",
+    "verseReference": "Luke 15:4"
+  },
+  {
+    "question": "What did Jesus do immediately before He fed the five thousand, according to the Gospel accounts?",
+    "options": [
+      "Sent the crowd away to find food",
+      "Asked His disciples to fast first",
+      "Looked up to heaven and gave thanks",
+      "Healed every sick person present"
+    ],
+    "correctAnswer": 2,
+    "category": "Gospels",
+    "difficulty": "hard",
+    "verseReference": "Matthew 14:19"
+  },
+  {
+    "question": "Who asked Jesus, 'What must I do to inherit eternal life?' and was told to sell all he had?",
+    "options": [
+      "A Pharisee",
+      "A Roman centurion",
+      "A Samaritan woman",
+      "A rich young ruler"
+    ],
+    "correctAnswer": 3,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "Mark 10:17-21"
+  },
+  {
+    "question": "What did Jesus call Himself when He said 'I am the way, the truth, and the life'?",
+    "options": [
+      "The only path to the Father",
+      "A teacher among many",
+      "The greatest of the prophets",
+      "A servant of truth"
+    ],
+    "correctAnswer": 0,
+    "category": "Gospels",
+    "difficulty": "medium",
+    "verseReference": "John 14:6"
+  },
+  {
+    "question": "Who was the centurion whose servant Jesus healed from a distance, praised for his great faith?",
+    "options": [
+      "Cornelius",
+      "An unnamed Roman centurion in Capernaum",
+      "Julius",
+      "Claudius Lysias"
+    ],
+    "correctAnswer": 1,
+    "category": "Gospels",
+    "difficulty": "hard",
+    "verseReference": "Matthew 8:5-10"
+  },
+  {
+    "question": "What did the wise men present to the infant Jesus when they found Him in Bethlehem?",
+    "options": [
+      "Silver, spices and fine linen",
+      "Wine, oil and grain",
+      "Gold, frankincense and myrrh",
+      "Robes, sandals and a staff"
+    ],
+    "correctAnswer": 2,
+    "category": "Gospels",
+    "difficulty": "easy",
+    "verseReference": "Matthew 2:11"
+  },
+  {
+    "question": "On the road to Damascus, what happened to Saul that left him blind for three days?",
+    "options": [
+      "A great wind struck him down",
+      "He was struck by an angel's sword",
+      "A sandstorm blinded his eyes",
+      "A bright light from heaven shone around him"
+    ],
+    "correctAnswer": 3,
+    "category": "New Testament",
+    "difficulty": "medium",
+    "verseReference": "Acts 9:3-9"
+  },
+  {
+    "question": "Who was the first Christian martyr, stoned to death while seeing a vision of Jesus standing at God's right hand?",
+    "options": [
+      "Stephen",
+      "James",
+      "Philip",
+      "Barnabas"
+    ],
+    "correctAnswer": 0,
+    "category": "New Testament",
+    "difficulty": "medium",
+    "verseReference": "Acts 7:55-60"
+  },
+  {
+    "question": "What happened to Peter when he was miraculously freed from prison by an angel in the book of Acts?",
+    "options": [
+      "He fled the city immediately",
+      "His chains fell off and the prison gate opened by itself",
+      "He convinced the guards to release him",
+      "He escaped through an underground tunnel"
+    ],
+    "correctAnswer": 1,
+    "category": "New Testament",
+    "difficulty": "medium",
+    "verseReference": "Acts 12:7-10"
+  },
+  {
+    "question": "Which young man fell asleep during Paul's long sermon, fell from a window, and was raised back to life?",
+    "options": [
+      "Timothy",
+      "Titus",
+      "Eutychus",
+      "Onesimus"
+    ],
+    "correctAnswer": 2,
+    "category": "New Testament",
+    "difficulty": "hard",
+    "verseReference": "Acts 20:9-10"
+  },
+  {
+    "question": "What were Paul and Silas doing in prison at Philippi when an earthquake suddenly opened the doors?",
+    "options": [
+      "Sleeping quietly",
+      "Planning their escape",
+      "Arguing with the guards",
+      "Praying and singing hymns"
+    ],
+    "correctAnswer": 3,
+    "category": "New Testament",
+    "difficulty": "medium",
+    "verseReference": "Acts 16:25"
+  },
+  {
+    "question": "Who was the Ethiopian official that Philip baptised after explaining the prophecy of Isaiah to him?",
+    "options": [
+      "The Ethiopian queen's treasurer",
+      "A Roman centurion",
+      "A synagogue leader",
+      "A Pharisee from Jerusalem"
+    ],
+    "correctAnswer": 0,
+    "category": "New Testament",
+    "difficulty": "hard",
+    "verseReference": "Acts 8:27"
+  },
+  {
+    "question": "What miraculous sign accompanied the coming of the Holy Spirit on the day of Pentecost?",
+    "options": [
+      "A great earthquake shook the room",
+      "Tongues of fire and the sound of a rushing wind",
+      "Darkness covered the city for an hour",
+      "A voice from heaven spoke audibly"
+    ],
+    "correctAnswer": 1,
+    "category": "New Testament",
+    "difficulty": "easy",
+    "verseReference": "Acts 2:2-3"
+  },
+  {
+    "question": "Who was the tentmaker couple that taught Apollos the way of God more accurately?",
+    "options": [
+      "Andronicus and Junia",
+      "Philemon and Apphia",
+      "Aquila and Priscilla",
+      "Aristarchus and Trophimus"
+    ],
+    "correctAnswer": 2,
+    "category": "New Testament",
+    "difficulty": "hard",
+    "verseReference": "Acts 18:26"
+  },
+  {
+    "question": "What happened to Paul on the island of Malta after he was shipwrecked, involving a venomous snake?",
+    "options": [
+      "He nearly died from the bite",
+      "He killed the snake before it could bite him",
+      "The islanders captured the snake first",
+      "He was bitten but suffered no harm"
+    ],
+    "correctAnswer": 3,
+    "category": "New Testament",
+    "difficulty": "hard",
+    "verseReference": "Acts 28:3-5"
+  },
+  {
+    "question": "Which apostle had a vision of a sheet filled with unclean animals, teaching him not to call anyone unclean?",
+    "options": [
+      "Peter",
+      "John",
+      "James",
+      "Thomas"
+    ],
+    "correctAnswer": 0,
+    "category": "New Testament",
+    "difficulty": "medium",
+    "verseReference": "Acts 10:9-15"
+  },
+  {
+    "question": "What does the book of James say faith without works is?",
+    "options": [
+      "Dead",
+      "Sufficient on its own",
+      "Greater than works",
+      "Equal to works"
+    ],
+    "correctAnswer": 0,
+    "category": "New Testament",
+    "difficulty": "medium",
+    "verseReference": "James 2:17"
+  },
+  {
+    "question": "According to 1 John, what does God's perfect love do to fear?",
+    "options": [
+      "It increases it for reverence",
+      "It casts out fear",
+      "It has no relationship to fear",
+      "It transforms fear into awe only"
+    ],
+    "correctAnswer": 1,
+    "category": "New Testament",
+    "difficulty": "medium",
+    "verseReference": "1 John 4:18"
+  },
+  {
+    "question": "What does the book of Hebrews say faith is, in its well-known definition?",
+    "options": [
+      "The certainty of future reward",
+      "Belief without any question",
+      "The substance of things hoped for, the evidence of things not seen",
+      "Trust built over many years"
+    ],
+    "correctAnswer": 2,
+    "category": "New Testament",
+    "difficulty": "hard",
+    "verseReference": "Hebrews 11:1"
+  },
+  {
+    "question": "Who wrote the book of Hebrews, according to most modern scholarship?",
+    "options": [
+      "Paul, without question",
+      "Peter, certainly",
+      "John, the beloved disciple",
+      "The author is anonymous, traditionally debated"
+    ],
+    "correctAnswer": 3,
+    "category": "New Testament",
+    "difficulty": "hard",
+    "verseReference": "Hebrews"
+  },
+  {
+    "question": "What does 1 Peter compare the devil to, warning believers to be sober and watchful?",
+    "options": [
+      "A roaring lion seeking someone to devour",
+      "A deceiving serpent",
+      "A wolf among sheep",
+      "A thief in the night"
+    ],
+    "correctAnswer": 0,
+    "category": "New Testament",
+    "difficulty": "medium",
+    "verseReference": "1 Peter 5:8"
+  },
+  {
+    "question": "According to the book of Revelation, what did John see written above the gates of the New Jerusalem?",
+    "options": [
+      "The names of the twelve apostles",
+      "The names of the twelve tribes of Israel",
+      "The Ten Commandments in full",
+      "The names of every nation"
+    ],
+    "correctAnswer": 1,
+    "category": "New Testament",
+    "difficulty": "hard",
+    "verseReference": "Revelation 21:12"
+  },
+  {
+    "question": "What does James say a person should do if they lack wisdom?",
+    "options": [
+      "Wait patiently for it to come naturally",
+      "Seek the wisest elder in the church",
+      "Ask God, who gives generously",
+      "Study the Law more diligently"
+    ],
+    "correctAnswer": 2,
+    "category": "New Testament",
+    "difficulty": "medium",
+    "verseReference": "James 1:5"
+  },
+  {
+    "question": "Who wrote the book of Revelation while exiled on the island of Patmos?",
+    "options": [
+      "Paul",
+      "Peter",
+      "Jude",
+      "John"
+    ],
+    "correctAnswer": 3,
+    "category": "New Testament",
+    "difficulty": "medium",
+    "verseReference": "Revelation 1:9"
+  },
+  {
+    "question": "According to 2 Peter, what does the Lord count slowness regarding His promise to return?",
+    "options": [
+      "Patience, not wanting any to perish",
+      "A sign of His indifference",
+      "A test of human faith alone",
+      "An unexplainable delay"
+    ],
+    "correctAnswer": 0,
+    "category": "New Testament",
+    "difficulty": "hard",
+    "verseReference": "2 Peter 3:9"
+  },
+  {
+    "question": "What does the book of Jude warn believers to contend earnestly for?",
+    "options": [
+      "Wealth and prosperity",
+      "The faith once delivered to the saints",
+      "Political influence",
+      "Unity above all doctrine"
+    ],
+    "correctAnswer": 1,
+    "category": "New Testament",
+    "difficulty": "hard",
+    "verseReference": "Jude 1:3"
+  },
+  {
+    "question": "Who did Paul leave in Crete to appoint elders in every town?",
+    "options": [
+      "Timothy",
+      "Titus",
+      "Silas",
+      "Luke"
+    ],
+    "correctAnswer": 1,
+    "category": "Pauline Epistles",
+    "difficulty": "hard",
+    "verseReference": "Titus 1:5"
+  },
+  {
+    "question": "According to Paul's letter to the Galatians, what is the fruit of the Spirit's first listed quality?",
+    "options": [
+      "Joy",
+      "Peace",
+      "Love",
+      "Patience"
+    ],
+    "correctAnswer": 2,
+    "category": "Pauline Epistles",
+    "difficulty": "medium",
+    "verseReference": "Galatians 5:22"
+  },
+  {
+    "question": "In 1 Corinthians 13, what does Paul say is greater than faith and hope?",
+    "options": [
+      "Wisdom",
+      "Knowledge",
+      "Power",
+      "Love"
+    ],
+    "correctAnswer": 3,
+    "category": "Pauline Epistles",
+    "difficulty": "easy",
+    "verseReference": "1 Corinthians 13:13"
+  },
+  {
+    "question": "What does Paul describe believers as putting on in his letter to the Ephesians, listing items like the shield of faith?",
+    "options": [
+      "The armour of God",
+      "The garments of praise",
+      "The robe of righteousness",
+      "The crown of life"
+    ],
+    "correctAnswer": 0,
+    "category": "Pauline Epistles",
+    "difficulty": "medium",
+    "verseReference": "Ephesians 6:11"
+  },
+  {
+    "question": "To which church did Paul write that he had learned to be content in whatever circumstances he was in?",
+    "options": [
+      "Corinth",
+      "Philippi",
+      "Thessalonica",
+      "Colossae"
+    ],
+    "correctAnswer": 1,
+    "category": "Pauline Epistles",
+    "difficulty": "hard",
+    "verseReference": "Philippians 4:11"
+  },
+  {
+    "question": "What did Paul call the 'thorn in the flesh' given to him, according to his letter to the Corinthians?",
+    "options": [
+      "A physical illness named explicitly",
+      "A persecuting enemy",
+      "A messenger of Satan to torment him",
+      "A recurring temptation"
+    ],
+    "correctAnswer": 2,
+    "category": "Pauline Epistles",
+    "difficulty": "hard",
+    "verseReference": "2 Corinthians 12:7"
+  },
+  {
+    "question": "According to Romans, what does Paul say is the wages of sin?",
+    "options": [
+      "Separation",
+      "Suffering",
+      "Judgment",
+      "Death"
+    ],
+    "correctAnswer": 3,
+    "category": "Pauline Epistles",
+    "difficulty": "easy",
+    "verseReference": "Romans 6:23"
+  },
+  {
+    "question": "In his letter to Timothy, what does Paul say is the root of all kinds of evil?",
+    "options": [
+      "The love of money",
+      "Pride",
+      "Jealousy",
+      "Deceit"
+    ],
+    "correctAnswer": 0,
+    "category": "Pauline Epistles",
+    "difficulty": "medium",
+    "verseReference": "1 Timothy 6:10"
+  },
+  {
+    "question": "What does Paul instruct believers to do in Philippians instead of being anxious about anything?",
+    "options": [
+      "Fast and seek wise counsel",
+      "Present requests to God with thanksgiving in prayer",
+      "Wait patiently without speaking",
+      "Seek the advice of elders first"
+    ],
+    "correctAnswer": 1,
+    "category": "Pauline Epistles",
+    "difficulty": "medium",
+    "verseReference": "Philippians 4:6"
+  },
+  {
+    "question": "Which letter did Paul write while urging Philemon to forgive and receive back his runaway slave Onesimus?",
+    "options": [
+      "Colossians",
+      "Titus",
+      "Philemon",
+      "2 Timothy"
+    ],
+    "correctAnswer": 2,
+    "category": "Pauline Epistles",
+    "difficulty": "hard",
+    "verseReference": "Philemon 1:10-17"
+  },
+  {
+    "question": "What did Paul say he had learned in whatever state he found himself in his letter to the Philippians?",
+    "options": [
+      "To depend entirely on others",
+      "To always seek more",
+      "To avoid hardship at all costs",
+      "To be content"
+    ],
+    "correctAnswer": 3,
+    "category": "Pauline Epistles",
+    "difficulty": "medium",
+    "verseReference": "Philippians 4:11"
+  },
+  {
+    "question": "According to Romans 8, what does Paul say nothing can separate believers from?",
+    "options": [
+      "The love of God in Christ Jesus",
+      "The fellowship of the saints",
+      "Earthly trials and suffering",
+      "Their own personal struggles"
+    ],
+    "correctAnswer": 0,
+    "category": "Pauline Epistles",
+    "difficulty": "medium",
+    "verseReference": "Romans 8:38-39"
+  },
+  {
+    "question": "What does Paul instruct husbands to do for their wives in Ephesians, comparing it to Christ's love?",
+    "options": [
+      "Provide for their needs only",
+      "Love them as Christ loved the church",
+      "Lead them in all decisions",
+      "Honour them publicly each year"
+    ],
+    "correctAnswer": 1,
+    "category": "Pauline Epistles",
+    "difficulty": "medium",
+    "verseReference": "Ephesians 5:25"
+  },
+  {
+    "question": "According to Colossians, what does Paul say believers should set their minds on?",
+    "options": [
+      "The needs of their families first",
+      "Worldly success for God's glory",
+      "Things above, not on earthly things",
+      "Their own spiritual growth alone"
+    ],
+    "correctAnswer": 2,
+    "category": "Pauline Epistles",
+    "difficulty": "medium",
+    "verseReference": "Colossians 3:2"
+  },
+  {
+    "question": "According to the book of Proverbs, what is described as the beginning of wisdom?",
+    "options": [
+      "Knowledge of the law",
+      "Diligent study",
+      "Honouring one's parents",
+      "The fear of the LORD"
+    ],
+    "correctAnswer": 3,
+    "category": "Wisdom Books",
+    "difficulty": "easy",
+    "verseReference": "Proverbs 9:10"
+  },
+  {
+    "question": "In the book of Job, who were the three friends who came to comfort Job but ended up accusing him?",
+    "options": [
+      "Eliphaz, Bildad and Zophar",
+      "Elihu, Bildad and Zophar",
+      "Eliphaz, Elihu and Zophar",
+      "Bildad, Elihu and Zophar"
+    ],
+    "correctAnswer": 0,
+    "category": "Wisdom Books",
+    "difficulty": "hard",
+    "verseReference": "Job 2:11"
+  },
+  {
+    "question": "What does Ecclesiastes repeatedly call life and human achievement under the sun?",
+    "options": [
+      "A blessing without measure",
+      "Vanity, a chasing after the wind",
+      "A gift to be treasured always",
+      "A burden too heavy to bear"
+    ],
+    "correctAnswer": 1,
+    "category": "Wisdom Books",
+    "difficulty": "medium",
+    "verseReference": "Ecclesiastes 1:14"
+  },
+  {
+    "question": "Which psalm begins with the words 'The LORD is my shepherd, I shall not want'?",
+    "options": [
+      "Psalm 91",
+      "Psalm 121",
+      "Psalm 23",
+      "Psalm 51"
+    ],
+    "correctAnswer": 2,
+    "category": "Wisdom Books",
+    "difficulty": "easy",
+    "verseReference": "Psalm 23:1"
+  },
+  {
+    "question": "In the Song of Solomon, what relationship is celebrated through poetic imagery throughout the book?",
+    "options": [
+      "Friendship between brothers",
+      "The bond between parent and child",
+      "Loyalty between a king and his servant",
+      "Romantic love between a bride and groom"
+    ],
+    "correctAnswer": 3,
+    "category": "Wisdom Books",
+    "difficulty": "medium",
+    "verseReference": "Song of Solomon 1:2"
+  },
+  {
+    "question": "What does Proverbs say a soft answer does to wrath?",
+    "options": [
+      "It turns it away",
+      "It increases it",
+      "It has no effect on it",
+      "It delays it briefly"
+    ],
+    "correctAnswer": 0,
+    "category": "Wisdom Books",
+    "difficulty": "medium",
+    "verseReference": "Proverbs 15:1"
+  },
+  {
+    "question": "In Job's restoration at the end of the book, how did God bless him compared to his earlier life?",
+    "options": [
+      "With exactly the same amount as before",
+      "With twice as much as he had before",
+      "With only spiritual blessings, not material ones",
+      "With less, but greater peace of mind"
+    ],
+    "correctAnswer": 1,
+    "category": "Wisdom Books",
+    "difficulty": "hard",
+    "verseReference": "Job 42:10"
+  },
+  {
+    "question": "Which psalm is widely known as a psalm of repentance, written by David after his sin with Bathsheba?",
+    "options": [
+      "Psalm 22",
+      "Psalm 119",
+      "Psalm 51",
+      "Psalm 8"
+    ],
+    "correctAnswer": 2,
+    "category": "Wisdom Books",
+    "difficulty": "medium",
+    "verseReference": "Psalm 51:1"
+  },
+  {
+    "question": "According to Proverbs, what happens to plans without counsel compared to plans made with many advisers?",
+    "options": [
+      "They succeed regardless of counsel",
+      "There is no difference either way",
+      "They take longer but eventually work",
+      "They fail, but with many advisers they succeed"
+    ],
+    "correctAnswer": 3,
+    "category": "Wisdom Books",
+    "difficulty": "hard",
+    "verseReference": "Proverbs 15:22"
+  },
+  {
+    "question": "What does Ecclesiastes say there is a time for, in its famous passage about the seasons of life?",
+    "options": [
+      "Every activity under heaven, including a time to weep and a time to laugh",
+      "Only joy and celebration",
+      "Only mourning and reflection",
+      "Wealth and its pursuit alone"
+    ],
+    "correctAnswer": 0,
+    "category": "Wisdom Books",
+    "difficulty": "easy",
+    "verseReference": "Ecclesiastes 3:1-4"
+  },
+  {
+    "question": "What does Proverbs say about a friend who loves at all times?",
+    "options": [
+      "He is rare and hard to find",
+      "He expects nothing in return always",
+      "A brother is born for adversity",
+      "He will eventually disappoint you"
+    ],
+    "correctAnswer": 2,
+    "category": "Wisdom Books",
+    "difficulty": "medium",
+    "verseReference": "Proverbs 17:17"
+  },
+  {
+    "question": "In Psalm 91, what is God described as for those who dwell in His shelter?",
+    "options": [
+      "A distant ruler",
+      "A silent observer",
+      "A demanding judge",
+      "A refuge and fortress"
+    ],
+    "correctAnswer": 3,
+    "category": "Wisdom Books",
+    "difficulty": "medium",
+    "verseReference": "Psalm 91:2"
+  },
+  {
+    "question": "What does Proverbs say happens to the one who trusts in his own heart?",
+    "options": [
+      "He is a fool",
+      "He prospers greatly",
+      "He gains great wisdom",
+      "He becomes a leader among men"
+    ],
+    "correctAnswer": 0,
+    "category": "Wisdom Books",
+    "difficulty": "medium",
+    "verseReference": "Proverbs 28:26"
+  },
+  {
+    "question": "Which book of wisdom literature is structured as a poetic dialogue between a suffering man and his friends about why the righteous suffer?",
+    "options": [
+      "Ecclesiastes",
+      "Job",
+      "Proverbs",
+      "Lamentations"
+    ],
+    "correctAnswer": 1,
+    "category": "Wisdom Books",
+    "difficulty": "medium",
+    "verseReference": "Job"
+  },
+  {
+    "question": "What does Psalm 139 say about God's knowledge of a person, even before birth?",
+    "options": [
+      "He learns about each person gradually",
+      "He only knows them after baptism",
+      "He knew them and formed them in the womb",
+      "He becomes aware at the moment of birth"
+    ],
+    "correctAnswer": 2,
+    "category": "Wisdom Books",
+    "difficulty": "medium",
+    "verseReference": "Psalm 139:13"
+  },
+  {
+    "question": "How many books are traditionally counted in the Old Testament of the Protestant Bible?",
+    "options": [
+      "35",
+      "39",
+      "42",
+      "46"
+    ],
+    "correctAnswer": 1,
+    "category": "General",
+    "difficulty": "medium",
+    "verseReference": "Old Testament"
+  },
+  {
+    "question": "What is the longest chapter in the entire Bible?",
+    "options": [
+      "Genesis 1",
+      "Isaiah 53",
+      "Psalm 119",
+      "Matthew 5"
+    ],
+    "correctAnswer": 2,
+    "category": "General",
+    "difficulty": "hard",
+    "verseReference": "Psalm 119"
+  },
+  {
+    "question": "Which language was most of the Old Testament originally written in?",
+    "options": [
+      "Greek",
+      "Latin",
+      "Aramaic only",
+      "Hebrew"
+    ],
+    "correctAnswer": 3,
+    "category": "General",
+    "difficulty": "medium",
+    "verseReference": "General"
+  },
+  {
+    "question": "What is the shortest book in the Old Testament by number of verses?",
+    "options": [
+      "Obadiah",
+      "Joel",
+      "Nahum",
+      "Haggai"
+    ],
+    "correctAnswer": 0,
+    "category": "General",
+    "difficulty": "hard",
+    "verseReference": "Obadiah"
+  },
+  {
+    "question": "Which language was the New Testament primarily written in?",
+    "options": [
+      "Hebrew",
+      "Greek",
+      "Latin",
+      "Aramaic"
+    ],
+    "correctAnswer": 1,
+    "category": "General",
+    "difficulty": "medium",
+    "verseReference": "General"
+  },
+  {
+    "question": "How many Psalms are there in the book of Psalms?",
+    "options": [
+      "100",
+      "120",
+      "150",
+      "175"
+    ],
+    "correctAnswer": 2,
+    "category": "General",
+    "difficulty": "medium",
+    "verseReference": "Psalms"
+  },
+  {
+    "question": "Which Old Testament book contains no direct mention of God's name at all?",
+    "options": [
+      "Ruth",
+      "Job",
+      "Ecclesiastes",
+      "Esther"
+    ],
+    "correctAnswer": 3,
+    "category": "General",
+    "difficulty": "hard",
+    "verseReference": "Esther"
+  },
+  {
+    "question": "How many letters (epistles) in the New Testament are traditionally attributed to the Apostle Paul?",
+    "options": [
+      "13",
+      "11",
+      "15",
+      "9"
+    ],
+    "correctAnswer": 0,
+    "category": "General",
+    "difficulty": "hard",
+    "verseReference": "New Testament"
+  },
+  {
+    "question": "What are the first five books of the Old Testament, traditionally attributed to Moses, collectively called?",
+    "options": [
+      "The Prophets",
+      "The Pentateuch",
+      "The Wisdom Books",
+      "The Historical Books"
+    ],
+    "correctAnswer": 1,
+    "category": "General",
+    "difficulty": "medium",
+    "verseReference": "General"
+  },
+  {
+    "question": "Which Gospel is traditionally believed to have been written specifically for a Gentile, Greek-speaking audience emphasising Jesus as the perfect man?",
+    "options": [
+      "Matthew",
+      "Mark",
+      "Luke",
+      "John"
+    ],
+    "correctAnswer": 2,
+    "category": "General",
+    "difficulty": "hard",
+    "verseReference": "Luke 1:3"
+  },
+  {
+    "question": "How many chapters does the book of Psalms contain in total?",
+    "options": [
+      "150",
+      "100",
+      "120",
+      "180"
+    ],
+    "correctAnswer": 0,
+    "category": "General",
+    "difficulty": "medium",
+    "verseReference": "Psalms"
+  },
+  {
+    "question": "Which Old Testament book is named after a woman who became queen of Persia and saved her people?",
+    "options": [
+      "Ruth",
+      "Esther",
+      "Judith",
+      "Naomi"
+    ],
+    "correctAnswer": 1,
+    "category": "General",
+    "difficulty": "easy",
+    "verseReference": "Esther"
+  },
+  {
+    "question": "Which is the only Gospel that records the visit of the shepherds to the newborn Jesus?",
+    "options": [
+      "Matthew",
+      "Mark",
+      "Luke",
+      "John"
+    ],
+    "correctAnswer": 2,
+    "category": "General",
+    "difficulty": "medium",
+    "verseReference": "Luke 2:8-20"
+  },
+  {
+    "question": "What does the Hebrew word 'Selah', found often in the Psalms, most likely indicate?",
+    "options": [
+      "The end of a chapter",
+      "A command to stand",
+      "A type of musical instrument",
+      "A musical or reflective pause"
+    ],
+    "correctAnswer": 3,
+    "category": "General",
+    "difficulty": "hard",
+    "verseReference": "Psalms"
+  }
 ];
