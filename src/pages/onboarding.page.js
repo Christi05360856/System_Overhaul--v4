@@ -1,61 +1,110 @@
+
 // ============================================
-// SCRIPTUREQUEST V5 — Onboarding Tour (FIXED)
+// SCRIPTUREQUEST V5 — Onboarding Sequence (REBUILT)
+// ============================================
+// REPLACES the earlier tooltip/spotlight version of
+// this file entirely. That version pointed live
+// tooltips at real UI elements (FABs, nav items).
+// User testing showed that wasn't enough for new
+// users to actually understand the app.
+//
+// This version is a full-screen, illustrated,
+// slide-based walkthrough — its own self-contained
+// flow shown BEFORE the user ever sees the real path
+// screen. No live UI is shown during onboarding at
+// all (pure illustration + text), so this can never
+// break or be broken by changes to the real screens.
+//
+// Renders into #screen-onboarding-intro (a new screen
+// div in index.html, sibling to #screen-path etc.).
+// Routing into and out of this screen is handled by
+// app.js — this file only renders slides and reports
+// back via the onDone callback when the user finishes
+// or explicitly skips.
 // ============================================
 
 import { ONBOARDING_SEEN_KEY } from '../utils/constants.js';
 
-// ── Tour step definitions ──
-const STEPS = [
+// ── Slide definitions ──
+// icon: large emoji used as the illustration (no external
+// image assets needed — keeps this fully self-contained).
+// accent: which CSS accent variant to use for that slide's
+// icon badge background (cycles through existing tokens).
+const SLIDES = [
   {
-    target: '#screen-path',
-    title: 'Welcome to ScriptureQuest! 📖',
-    body: 'This is your Learning Path — work through the entire Bible, one passage at a time. Tap any open section to see its lessons.',
-    placement: 'center'
+    icon: '📖',
+    accent: 'primary',
+    title: 'Welcome to ScriptureQuest',
+    body: 'A structured way to learn the entire Bible — one passage at a time, with quizzes, streaks, and friendly competition along the way.',
+    isWelcome: true
   },
   {
-    target: '#daily-challenge-fab',
+    icon: '🗺️',
+    accent: 'primary',
+    title: 'The Learning Path',
+    body: 'This is your home screen. Work through every book of the Bible in order. Tap a section to open it, then tap a round to start. Finish a round to unlock the next one.'
+  },
+  {
+    icon: '📅',
+    accent: 'warm',
     title: 'Daily Challenge',
-    body: 'Tap here for a quick timed quiz. You get two attempts a day, and it\'s the only thing that keeps your streak alive.',
-    placement: 'top'      // target is at bottom, tooltip floats UP
+    body: 'A quick timed quiz from the full question pool. You get two attempts a day, and it\'s the only thing that keeps your streak alive — so don\'t skip a day!'
   },
   {
-    target: '#battle-fab',
+    icon: '⚔️',
+    accent: 'primary',
     title: 'Battle Mode',
-    body: 'Challenge a friend to a head-to-head quiz battle. Winner takes bonus XP!',
-    placement: 'top'      // target is at bottom, tooltip floats UP
+    body: 'Challenge a friend head-to-head. Generate a code and share it, or challenge someone directly from the leaderboard. Made a mistake? You can cancel a pending challenge anytime before it\'s accepted.'
   },
   {
-    // FIXED: Use 'ranks' if that's your actual data-screen value.
-    // If your HTML uses data-screen="leaderboard", change this back.
-    target: '[data-screen="ranks"], [data-screen="leaderboard"]',
-    title: 'Weekly Leaderboard',
-    body: 'See how you rank against everyone this week. Top 3 win real prizes when the week ends.',
-    placement: 'bottom'  // target is at bottom, tooltip floats UP (was broken: floated down)
+    icon: '🏆',
+    accent: 'warm',
+    title: 'Leaderboard',
+    body: 'See how you rank against everyone this week. The green dot means someone\'s online right now — tap the sword icon next to their name to challenge them directly. Got a code from a friend? Enter it here to join instantly.'
   },
   {
-    target: '[data-screen="profile"]',
+    icon: '🎁',
+    accent: 'success',
+    title: 'Rewards',
+    body: 'Earn points as you play and unlock real rewards at milestones. The top 3 on the weekly leaderboard also win prizes when the week resets.'
+  },
+  {
+    icon: '👤',
+    accent: 'primary',
     title: 'Your Profile',
-    body: 'Track your XP, level, streak, and badges here. You can replay this tour anytime from Settings.',
-    placement: 'bottom'   // target is at bottom, tooltip floats UP
+    body: 'Customize your avatar, track your current and longest streak, and see every badge and achievement you\'ve unlocked along the way.'
+  },
+  {
+    icon: '⚙️',
+    accent: 'info',
+    title: 'Settings',
+    body: 'Switch between light and dark mode, manage notifications, contact support, or come back here anytime to replay this walkthrough.'
+  },
+  {
+    icon: '🎉',
+    accent: 'success',
+    title: "You're All Set!",
+    body: 'That\'s everything you need to get started. Jump in, start your first lesson, and build your streak from day one.',
+    isClosing: true
   }
 ];
 
 // ── Module state ──
-let _currentStep   = 0;
-let _activeSteps   = [];
-let _overlayEl     = null;
-let _onFinish       = null;
-let _resizeHandler  = null;
+let _currentSlide = 0;
+let _onDone       = null;
+
+// ── Element helper ──
+const el = id => document.getElementById(id);
 
 // ============================================
-// PUBLIC API
+// PUBLIC: should onboarding run for this user?
 // ============================================
 
 export function shouldShowOnboarding() {
   try {
     return localStorage.getItem(ONBOARDING_SEEN_KEY) !== 'true';
   } catch {
-    return false;
+    return false; // if localStorage is unavailable, don't force it
   }
 }
 
@@ -63,257 +112,113 @@ export function markOnboardingSeen() {
   try { localStorage.setItem(ONBOARDING_SEEN_KEY, 'true'); } catch {}
 }
 
-export function resetOnboardingSeen() {
-  try { localStorage.removeItem(ONBOARDING_SEEN_KEY); } catch {}
+// ============================================
+// PUBLIC: init the onboarding screen
+// Call this right before showing #screen-onboarding-intro.
+// onDone is called when the user finishes or skips —
+// the caller (app.js) is responsible for then routing
+// to the real path screen.
+// ============================================
+
+export function initOnboardingScreen(onDone) {
+  _onDone       = onDone || null;
+  _currentSlide = 0;
+
+  _renderSlide();
+  _wireButtons();
 }
 
-export function startOnboarding(onFinish) {
-  _onFinish = onFinish || null;
+// ============================================
+// RENDER CURRENT SLIDE
+// ============================================
 
-  // Filter to steps whose target element actually exists right now.
-  // For multiple selectors (comma-separated), querySelector returns
-  // the first match.
-  _activeSteps = STEPS.filter(step =>
-    step.placement === 'center' || document.querySelector(step.target)
-  );
+function _renderSlide() {
+  const slide = SLIDES[_currentSlide];
+  if (!slide) return;
 
-  if (!_activeSteps.length) {
-    _finish();
-    return;
+  const iconEl    = el('onb-slide-icon');
+  const titleEl   = el('onb-slide-title');
+  const bodyEl    = el('onb-slide-body');
+  const badgeEl   = el('onb-slide-icon-badge');
+  const skipBtn   = el('onb-skip-btn');
+  const backBtn   = el('onb-back-btn');
+  const nextBtn   = el('onb-next-btn');
+  const dotsEl    = el('onb-dots');
+
+  if (iconEl)  iconEl.textContent = slide.icon;
+  if (titleEl) titleEl.textContent = slide.title;
+  if (bodyEl)  bodyEl.textContent  = slide.body;
+
+  if (badgeEl) {
+    badgeEl.className = `onb-icon-badge onb-icon-badge--${slide.accent || 'primary'}`;
   }
 
-  _currentStep = 0;
-  _buildOverlay();
-  _renderStep();
-}
+  const isFirst = _currentSlide === 0;
+  const isLast  = _currentSlide === SLIDES.length - 1;
 
-// ============================================
-// OVERLAY CONSTRUCTION
-// ============================================
-
-function _buildOverlay() {
-  _teardownOverlay();
-
-  _overlayEl = document.createElement('div');
-  _overlayEl.id = 'onboarding-overlay';
-  _overlayEl.className = 'onboarding-overlay';
-  _overlayEl.innerHTML = `
-    <div class="onboarding-spotlight" id="onboarding-spotlight"></div>
-    <div class="onboarding-tooltip" id="onboarding-tooltip" role="dialog" aria-live="polite">
-      <button class="onboarding-skip-btn" id="onboarding-skip-btn" aria-label="Skip tour">Skip</button>
-      <h3 class="onboarding-tooltip-title" id="onboarding-tooltip-title"></h3>
-      <p class="onboarding-tooltip-body" id="onboarding-tooltip-body"></p>
-      <div class="onboarding-tooltip-footer">
-        <div class="onboarding-dots" id="onboarding-dots"></div>
-        <div class="onboarding-tooltip-actions">
-          <button class="onboarding-back-btn" id="onboarding-back-btn">Back</button>
-          <button class="onboarding-next-btn" id="onboarding-next-btn">Next</button>
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(_overlayEl);
-
-  document.getElementById('onboarding-skip-btn')
-    ?.addEventListener('click', _finish);
-  document.getElementById('onboarding-back-btn')
-    ?.addEventListener('click', _goBack);
-  document.getElementById('onboarding-next-btn')
-    ?.addEventListener('click', _goNext);
-
-  _resizeHandler = () => _repositionCurrentStep();
-  window.addEventListener('resize', _resizeHandler);
-}
-
-function _teardownOverlay() {
-  if (_resizeHandler) {
-    window.removeEventListener('resize', _resizeHandler);
-    _resizeHandler = null;
-  }
-  if (_overlayEl) {
-    _overlayEl.remove();
-    _overlayEl = null;
-  }
-}
-
-// ============================================
-// STEP RENDERING
-// ============================================
-
-function _renderStep() {
-  const step = _activeSteps[_currentStep];
-  if (!step || !_overlayEl) return;
-
-  const titleEl = document.getElementById('onboarding-tooltip-title');
-  const bodyEl  = document.getElementById('onboarding-tooltip-body');
-  const backBtn = document.getElementById('onboarding-back-btn');
-  const nextBtn = document.getElementById('onboarding-next-btn');
-
-  if (titleEl) titleEl.textContent = step.title;
-  if (bodyEl)  bodyEl.textContent  = step.body;
-
-  const isFirst = _currentStep === 0;
-  const isLast  = _currentStep === _activeSteps.length - 1;
-
+  if (skipBtn) skipBtn.classList.toggle('hidden', isLast);
   if (backBtn) backBtn.classList.toggle('hidden', isFirst);
-  if (nextBtn) nextBtn.textContent = isLast ? 'Got it!' : 'Next';
-
-  _renderDots();
-  _positionSpotlightAndTooltip(step);
-}
-
-function _renderDots() {
-  const dotsEl = document.getElementById('onboarding-dots');
-  if (!dotsEl) return;
-  dotsEl.innerHTML = _activeSteps.map((_, i) =>
-    `<span class="onboarding-dot ${i === _currentStep ? 'onboarding-dot--active' : ''}"></span>`
-  ).join('');
-}
-
-// ============================================
-// SPOTLIGHT + TOOLTIP POSITIONING  (FIXED)
-// ============================================
-
-function _positionSpotlightAndTooltip(step) {
-  const spotlightEl = document.getElementById('onboarding-spotlight');
-  const tooltipEl   = document.getElementById('onboarding-tooltip');
-  if (!spotlightEl || !tooltipEl) return;
-
-  // ── Center placement: full intro slide, no cutout ──
-  if (step.placement === 'center') {
-    spotlightEl.style.display = 'none';
-    tooltipEl.classList.add('onboarding-tooltip--center');
-    tooltipEl.style.top  = '';
-    tooltipEl.style.left = '';
-    tooltipEl.style.transform = '';
-    tooltipEl.style.width = '';
-    return;
+  if (nextBtn) {
+    nextBtn.textContent = isLast ? "Let's Go!" : 'Next';
   }
 
-  tooltipEl.classList.remove('onboarding-tooltip--center');
-
-  const targetEl = document.querySelector(step.target);
-  if (!targetEl) {
-    _goNext();
-    return;
+  if (dotsEl) {
+    dotsEl.innerHTML = SLIDES.map((_, i) =>
+      `<span class="onb-dot ${i === _currentSlide ? 'onb-dot--active' : ''}"></span>`
+    ).join('');
   }
 
-  const rect = targetEl.getBoundingClientRect();
-
-  // Defensive: skip elements with zero size (not rendered yet)
-  if (rect.width === 0 || rect.height === 0) {
-    _goNext();
-    return;
-  }
-
-  const pad  = 8;
-
-  // ── Spotlight cutout ──
-  spotlightEl.style.display = 'block';
-  spotlightEl.style.top    = `${rect.top - pad}px`;
-  spotlightEl.style.left   = `${rect.left - pad}px`;
-  spotlightEl.style.width  = `${rect.width + pad * 2}px`;
-  spotlightEl.style.height = `${rect.height + pad * 2}px`;
-
-  // ── Tooltip sizing ──
-  const tooltipWidth = Math.min(320, window.innerWidth - 32);
-  tooltipEl.style.width = `${tooltipWidth}px`;
-
-  // Force a layout read so we can measure the tooltip's height
-  const tooltipHeight = tooltipEl.getBoundingClientRect().height || 140;
-
-  // ── Tooltip positioning (FIXED) ──
-  //
-  // placement = 'top'    → target is in the UPPER part of screen, tooltip goes BELOW it
-  // placement = 'bottom' → target is in the LOWER part of screen, tooltip goes ABOVE it
-  //
-  // This is the inverse of the old broken logic which put 'bottom'
-  // tooltips below the target (off-screen for bottom nav).
-  
-  let top, transform;
-
-  if (step.placement === 'top') {
-    // Tooltip sits BELOW the target
-    top = rect.bottom + pad + 8;
-    transform = 'translateY(0)';
-  } else {
-    // placement === 'bottom' (or default)
-    // Tooltip sits ABOVE the target, anchored to its own bottom edge
-    top = rect.top - pad - 8;
-    transform = 'translateY(-100%)';
-  }
-
-  // Horizontal centering, clamped to viewport
-  let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
-  left = Math.max(16, Math.min(left, window.innerWidth - tooltipWidth - 16));
-
-  // ── CRITICAL FIX: Vertical viewport clamping ──
-  //
-  // After applying transform, ensure the tooltip's visible box
-  // is fully inside [8, window.innerHeight - 8].
-  
-  let finalTop = top;
-
-  if (transform === 'translateY(-100%)') {
-    // Tooltip extends UPWARD from `top`
-    finalTop = Math.max(tooltipHeight + 8, top);
-    finalTop = Math.min(finalTop, window.innerHeight - 8);
-  } else {
-    // Tooltip extends DOWNWARD from `top`
-    finalTop = Math.max(8, top);
-    if (finalTop + tooltipHeight > window.innerHeight - 8) {
-      // Not enough room below — flip to above
-      finalTop = rect.top - pad - 8;
-      transform = 'translateY(-100%)';
-      finalTop = Math.max(tooltipHeight + 8, finalTop);
-    }
-  }
-
-  tooltipEl.style.top       = `${finalTop}px`;
-  tooltipEl.style.left      = `${left}px`;
-  tooltipEl.style.transform = transform;
-
-  // Scroll target into view if off-screen (defensive)
-  if (rect.top < 0 || rect.bottom > window.innerHeight) {
-    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Re-trigger entrance animation on the slide content
+  const contentEl = el('onb-slide-content');
+  if (contentEl) {
+    contentEl.classList.remove('onb-slide-content--enter');
+    void contentEl.offsetWidth; // reflow
+    contentEl.classList.add('onb-slide-content--enter');
   }
 }
 
-function _repositionCurrentStep() {
-  const step = _activeSteps[_currentStep];
-  if (step) _positionSpotlightAndTooltip(step);
+// ============================================
+// BUTTON WIRING
+// ============================================
+
+function _wireButtons() {
+  _rewire('onb-skip-btn', _finish);
+  _rewire('onb-back-btn', _goBack);
+  _rewire('onb-next-btn', _goNext);
 }
 
-// ============================================
-// NAVIGATION
-// ============================================
+function _rewire(id, handler) {
+  const old = el(id);
+  if (!old) return;
+  const fresh = old.cloneNode(true);
+  old.parentNode.replaceChild(fresh, old);
+  fresh.addEventListener('click', handler);
+}
 
 function _goNext() {
-  if (_currentStep < _activeSteps.length - 1) {
-    _currentStep++;
-    _renderStep();
+  if (_currentSlide < SLIDES.length - 1) {
+    _currentSlide++;
+    _renderSlide();
   } else {
     _finish();
   }
 }
 
 function _goBack() {
-  if (_currentStep > 0) {
-    _currentStep--;
-    _renderStep();
+  if (_currentSlide > 0) {
+    _currentSlide--;
+    _renderSlide();
   }
 }
 
 function _finish() {
   markOnboardingSeen();
-  _teardownOverlay();
-  _onFinish?.();
-  _onFinish = null;
+  _onDone?.();
+  _onDone = null;
 }
 
 export default {
   shouldShowOnboarding,
   markOnboardingSeen,
-  resetOnboardingSeen,
-  startOnboarding
+  initOnboardingScreen
 };
