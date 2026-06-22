@@ -1,0 +1,43 @@
+name: Streak Reminders
+
+# Runs twice daily: 2:00 PM and 6:00 PM.
+# GitHub Actions cron is always UTC — the two cron lines
+# below assume the app's reminder times are intended in
+# WAT/UTC+1 (West Africa Time). If your target audience is
+# in a different timezone, adjust the hour values accordingly.
+# 2:00 PM WAT = 13:00 UTC | 6:00 PM WAT = 17:00 UTC
+on:
+  schedule:
+    - cron: '0 13 * * *'  # 2:00 PM WAT
+    - cron: '0 17 * * *'  # 6:00 PM WAT
+  workflow_dispatch: {}    # allows manual trigger from the Actions tab for testing
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install firebase-admin
+
+      - name: Determine run mode (morning/evening)
+        id: mode
+        run: |
+          HOUR=$(date -u +%H)
+          if [ "$HOUR" -lt 15 ]; then
+            echo "mode=morning" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=evening" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run streak reminder script
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node scripts/sendStreakReminders.js ${{ steps.mode.outputs.mode }}
