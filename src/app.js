@@ -29,7 +29,12 @@ import { createChallenge, getChallengeByCode, acceptChallenge,
          clearChallengeFromURL } from './services/match.service.js';
 
 import { saveAvatar, getAvatarId, getAvatarLabel } from './services/avatar.service.js';
-
+import {
+      shouldShowOnboarding,
+      markOnboardingSeen,
+      initOnboardingScreen,
+      clearOnboardingSeen
+    } from './pages/onboarding.page.js';
 import { startPresenceHeartbeat, stopPresenceHeartbeat,
          subscribeToPresenceList, unsubscribePresenceList,
          getPresenceDotHtml }                  from './services/presence.service.js';
@@ -119,10 +124,11 @@ async function getRoundResultPage() {
 // SCREEN MANAGEMENT
 // ============================================
 
-const SCREENS = ['loading','landing','path','quiz','result','leaderboard','rewards',
-                 'profile','settings','battle','battle-result','challenge',
-                 'study','round','round-result',
-                 'lesson-complete','unit-complete','section-complete'];
+const SCREENS = ['loading','landing','onboarding-intro','path','quiz','result',
+                     'leaderboard','rewards','profile','settings',
+                     'battle','battle-result','challenge',
+                     'study','round','round-result',
+                     'lesson-complete','unit-complete','section-complete'];
 
 function showScreen(name) {
   SCREENS.forEach(id => {
@@ -385,6 +391,24 @@ initAuthListener(
 
     _checkPendingBattleResult(user).catch(e => console.warn('[PendingBattle]', e.message));
 
+        // ── Onboarding: show once per lifetime, then route normally ──
+    if (shouldShowOnboarding()) {
+      showScreen('onboarding-intro');
+      initOnboardingScreen(() => {
+        markOnboardingSeen();
+        const code = getChallengeCodeFromURL();
+        if (code) {
+          _pendingChallengeCode = code;
+          clearChallengeFromURL();
+          showScreen('path');
+          setTimeout(() => showChallengeAcceptModal(code), 800);
+        } else {
+          showScreen('path');
+        }
+      });
+      return;
+    }
+
     const code = getChallengeCodeFromURL();
     if (code) {
       _pendingChallengeCode = code;
@@ -393,15 +417,9 @@ initAuthListener(
       setTimeout(() => showChallengeAcceptModal(code), 800);
     } else {
       showScreen('path');
-             // Item 1: show the onboarding tour once, on first login only.
-import('./pages/onboarding.page.js').then(({ shouldShowOnboarding, startOnboarding }) => {
-  if (shouldShowOnboarding()) {
-    setTimeout(() => startOnboarding(), 900);
-  }
-}).catch(e => console.warn('[Onboarding] Load failed:', e.message));
-             
     }
   },
+         
   () => {
     initTheme(null);
     setBattleFabVisible(false);
@@ -417,7 +435,16 @@ import('./pages/onboarding.page.js').then(({ shouldShowOnboarding, startOnboardi
       localStorage.setItem('sq_pending_challenge', code);
     }
 
-    showScreen('path');
+        // ── Onboarding for first-time anonymous visitors ──
+    if (shouldShowOnboarding()) {
+      showScreen('onboarding-intro');
+      initOnboardingScreen(() => {
+        markOnboardingSeen();
+        showScreen('path');
+      });
+    } else {
+      showScreen('path');
+    }
     document.getElementById('auth-section')?.classList.remove('hidden');
     document.getElementById('welcome-section')?.classList.add('hidden');
     document.getElementById('path-auth-prompt')?.classList.remove('hidden');
@@ -1903,6 +1930,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+           // ── Replay Tutorial ──
+  document.getElementById('settings-replay-tutorial-btn')?.addEventListener('click', () => {
+    clearOnboardingSeen();
+    showScreen('onboarding-intro');
+    initOnboardingScreen(() => {
+      showScreen('settings');
+    });
+  });
+         
   document.getElementById('whatsapp-contact-btn')?.addEventListener('click', () => {
     window.open(
       'https://wa.me/+2349167055488?text=Hi%20Admin%F0%9F%91%8B%2C%20I%20need%20Help%20With%20Scripture%20Quest',
