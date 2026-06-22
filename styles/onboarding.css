@@ -393,4 +393,27 @@
 
 @media (max-height: 640px) {
   .onb-icon-badge { width: 88px; height: 88px; font-size: 40px; margin-bottom: 18px; }
-   }
+}
+
+
+/* ============================================
+   V4 ADDITIONS — Full-screen overlay + nav hiding
+   ============================================ */
+
+/* ── Onboarding screen must sit above EVERYTHING ── */
+#screen-onboarding-intro {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  height: calc(var(--vh, 1vh) * 100);
+  z-index: 1000;
+}
+
+/* ── Ensure onboarding wrapper fills viewport edge-to-edge ── */
+.onboarding-screen-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+}
