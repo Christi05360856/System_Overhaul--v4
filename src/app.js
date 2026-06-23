@@ -1735,11 +1735,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('daily-challenge-fab')?.addEventListener('click', openDailyChallenge);
 
- document.getElementById('settings-replay-tutorial-btn')?.addEventListener('click', () => {
-  import('./pages/onboarding.page.js').then(({ startOnboarding }) => {
-    startOnboarding();
-  }).catch(e => showToast('Could not load tutorial', 'error'));
-});
+   // ── Password visibility toggles ──
+  document.getElementById('login-password-toggle')?.addEventListener('click', () => {
+    const input = document.getElementById('login-password');
+    const btn = document.getElementById('login-password-toggle');
+    if (!input || !btn) return;
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    btn.innerHTML = `<i class="fas fa-eye${isHidden ? '-slash' : ''}"></i>`;
+  });
+
+  document.getElementById('reg-password-toggle')?.addEventListener('click', () => {
+    const input = document.getElementById('reg-password');
+    const btn = document.getElementById('reg-password-toggle');
+    if (!input || !btn) return;
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    btn.innerHTML = `<i class="fas fa-eye${isHidden ? '-slash' : ''}"></i>`;
+  });
+         
          
 
   document.getElementById('daily-modal-start-btn')?.addEventListener('click', () => {
