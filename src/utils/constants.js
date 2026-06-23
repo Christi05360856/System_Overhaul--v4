@@ -101,3 +101,5 @@ export const PATH_SCREENS = {
   SECTION_COMPLETE:'section-complete'
 };
 export const ONBOARDING_SEEN_KEY = 'sq_onboarding_seen_v1';
+
+export const NOTIFICATION_GATE_SEEN_KEY = 'sq_notif_gate_seen_v1';
