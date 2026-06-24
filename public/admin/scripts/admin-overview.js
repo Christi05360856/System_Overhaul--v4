@@ -1,5 +1,6 @@
 // ============================================
 // admin-overview.js  — Bible Battle Admin
+// CORRECTED — matches HTML CSS variables
 // ============================================
 import { db, getWeekId, fmtDate, esc, toast, showConfirm }
   from './admin-core.js';
@@ -19,10 +20,6 @@ export async function loadOverview() {
 
     const rSnap = await getDocs(query(collection(db,'rewardClaims'), where('status','==','pending')));
     _set('ov-pending-rewards', rSnap.size);
-    if (rSnap.size > 0) {
-      const b = document.getElementById('badge-rewards');
-      if (b) { b.textContent = rSnap.size; b.classList.remove('hidden'); }
-    }
 
     const qSnap = await getDocs(query(collection(db,'questions'), where('isActive','==',true)));
     _set('ov-question-count', qSnap.size);
@@ -53,45 +50,45 @@ export async function loadTopWinners() {
     const prizes = ['🥇 2GB Data','🥈 1GB Data','🥉 500MB'];
 
     if (!entries.length) {
-      el.innerHTML = '<div class="es" style="grid-column:1/-1"><i class="fas fa-trophy"></i>No entries this week yet</div>';
+      el.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-trophy"></i>No entries this week yet</div>';
       return;
     }
     el.innerHTML = entries.map((e, i) => `
-      <div class="wc ${medals[i]}">
-        <div class="wmed">${labels[i]}</div>
-        <div class="wname">${esc(e.displayName || 'Anonymous')}</div>
-        <div class="wpts">${(e.points || 0).toLocaleString()} pts</div>
-        <div class="wdet"><i class="fas fa-star"></i> Level ${e.level || 1}</div>
-        <div class="wdet"><i class="fas fa-fire"></i> ${e.streak || 0} day streak</div>
-        <span class="wbadge ${medals[i]}">${prizes[i]}</span>
+      <div class="podium-card ${medals[i]}">
+        <div class="podium-medal">${labels[i]}</div>
+        <div class="podium-name">${esc(e.displayName || 'Anonymous')}</div>
+        <div class="podium-pts">${(e.points || 0).toLocaleString()} pts</div>
+        <div class="podium-detail"><i class="fas fa-star"></i> Level ${e.level || 1}</div>
+        <div class="podium-detail"><i class="fas fa-fire"></i> ${e.streak || 0} day streak</div>
+        <span class="podium-reward ${medals[i]}">${prizes[i]}</span>
       </div>`).join('');
   } catch(e) {
-    el.innerHTML = `<div class="es" style="grid-column:1/-1"><i class="fas fa-exclamation-circle"></i>${esc(e.message)}</div>`;
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-exclamation-circle"></i>${esc(e.message)}</div>`;
   }
 }
 
 export async function loadRecentAttempts() {
   const tbody = document.getElementById('ov-attempts-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--mu);padding:22px">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-2);padding:22px">Loading…</td></tr>';
   try {
     const snap = await getDocs(query(collection(db,'quizAttempts'), orderBy('timestamp','desc'), limit(12)));
-    if (snap.empty) { tbody.innerHTML = '<tr><td colspan="5"><div class="es">No attempts yet</div></td></tr>'; return; }
+    if (snap.empty) { tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No attempts yet</div></td></tr>'; return; }
     tbody.innerHTML = '';
     snap.forEach(d => {
       const a   = d.data();
       const pct = a.percentage || 0;
-      const col = pct >= 80 ? 'var(--ok)' : pct >= 50 ? 'var(--warn)' : 'var(--err)';
+      const col = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)';
       tbody.innerHTML += `<tr>
-        <td style="color:var(--t);font-weight:600">${esc((a.userId||'').slice(0,8)+'…')}</td>
+        <td style="color:var(--text);font-weight:600">${esc((a.userId||'').slice(0,8)+'…')}</td>
         <td>${a.score||0}/${a.totalQuestions||15}</td>
         <td style="color:${col};font-weight:800">${pct}%</td>
-        <td style="color:var(--warn)">+${a.xpEarned||0} XP</td>
-        <td style="color:var(--mu)">${fmtDate(a.timestamp)}</td>
+        <td style="color:var(--amber)">+${a.xpEarned||0} XP</td>
+        <td style="color:var(--text-3)">${fmtDate(a.timestamp)}</td>
       </tr>`;
     });
   } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--err);padding:14px">${esc(e.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--red);padding:14px">${esc(e.message)}</td></tr>`;
   }
 }
 
