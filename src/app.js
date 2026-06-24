@@ -17,7 +17,8 @@ import { setState, getState, getCurrentUser,
          getUserProfile, getUserStats, subscribe } from './state/store.js';
 import { showToast }                           from './utils/toast.js';
 import { getCurrentWeekId, getDisplayWeek,
-         getTimeUntilNextWeek, formatCountdown } from './utils/week.js';
+         getTimeUntilNextWeek, formatCountdown,
+         ensureWeekEpochLoaded } from './utils/week.js';
 import { LAST_SEEN_WEEK, SCORE_PASS_THRESHOLD,
          PENDING_BATTLE_KEY }                  from './utils/constants.js';
 import { AVATARS, mountAvatar, renderAvatarSVG } from './components/avatar.js';
@@ -380,6 +381,8 @@ function _unsubMatch() {
 
 initAuthListener(
   async (user, profile, stats) => {
+    await ensureWeekEpochLoaded();
+
     await initTheme(profile);
     checkNewWeek();
     checkAndShowAnnouncements().catch(e => console.warn('[Announce]', e.message));
