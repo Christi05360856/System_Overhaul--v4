@@ -41,6 +41,14 @@
       "dest": "/admin.html"
     },
     {
+      "src": "/admin/scripts/(.*)",
+      "dest": "/admin/scripts/$1"
+    },
+    {
+      "src": "/admin/styles/(.*)",
+      "dest": "/admin/styles/$1"
+    },
+    {
       "src": "/sw.js",
       "dest": "/sw.js"
     },
