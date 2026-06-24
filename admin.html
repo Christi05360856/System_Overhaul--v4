@@ -582,6 +582,25 @@
   </div>
 </div>
 
+<script>
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('open');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+  }
+  // Close sidebar when a nav item is clicked on mobile
+  document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (window.innerWidth < 900) closeSidebar();
+    });
+  });
+</script>
+
+
+  
 <!-- SINGLE MODULE ENTRY POINT — no race conditions -->
 <script type="module" src="/admin/scripts/admin-init.js"></script>
 
