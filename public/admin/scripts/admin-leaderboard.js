@@ -1,5 +1,6 @@
 // ============================================
 // admin-leaderboard.js  — Bible Battle Admin
+// CORRECTED — matches HTML IDs and CSS vars
 // ============================================
 import { db, getWeekId, getWeekNum, esc, toast, showConfirm }
   from './admin-core.js';
@@ -9,7 +10,7 @@ import { collection, doc, query, orderBy, limit, getDocs, deleteDoc }
 export async function loadLeaderboard() {
   const tbody = document.getElementById('lb-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--mu);padding:24px">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:24px">Loading…</td></tr>';
   const wid = getWeekId();
   const wl  = document.getElementById('lb-week-label');
   if (wl) wl.textContent = `${getWeekNum()} (${wid})`;
@@ -23,20 +24,20 @@ export async function loadLeaderboard() {
     const cnt = document.getElementById('lb-entry-count');
     if (cnt) cnt.textContent = `${entries.length} competitors this week`;
     if (!entries.length) {
-      tbody.innerHTML = '<tr><td colspan="7"><div class="es"><i class="fas fa-trophy"></i>No entries yet this week</div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-trophy"></i>No entries yet this week</div></td></tr>';
       return;
     }
     const medals = ['🥇','🥈','🥉'];
     tbody.innerHTML = entries.map((e, i) => `
       <tr>
         <td style="font-weight:900;font-size:15px">${medals[i] || (i + 1)}</td>
-        <td style="color:var(--t);font-weight:700">${esc(e.displayName||'Anonymous')}</td>
-        <td style="color:var(--prh);font-weight:900;font-variant-numeric:tabular-nums">${(e.points||0).toLocaleString()}</td>
+        <td style="color:var(--text);font-weight:700">${esc(e.displayName||'Anonymous')}</td>
+        <td style="color:var(--accent);font-weight:900;font-variant-numeric:tabular-nums">${(e.points||0).toLocaleString()}</td>
         <td>Lv.${e.level || 1}</td>
         <td>${e.streak || 0} 🔥</td>
         <td>${e.quizzesTaken || 0}</td>
         <td>
-          <button class="btn btn-err btn-xs"
+          <button class="btn btn-danger btn-sm"
             onclick="window._adminLB.disqualify('${e.uid}','${esc(e.displayName||'User')}')">
             <i class="fas fa-ban"></i> DQ
           </button>
