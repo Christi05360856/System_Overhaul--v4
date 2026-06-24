@@ -1,5 +1,6 @@
 // ============================================
 // admin-rewards.js  — Bible Battle Admin
+// CORRECTED — matches HTML IDs and CSS vars
 // ============================================
 import { db, currentAdmin, fmtDate, esc, toast, showConfirm }
   from './admin-core.js';
@@ -11,7 +12,7 @@ let _rewards = [];
 export async function loadRewards() {
   const tbody = document.getElementById('rewards-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--mu);padding:24px">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:24px">Loading…</td></tr>';
   try {
     const snap = await getDocs(query(collection(db,'rewardClaims'), orderBy('createdAt','desc')));
     _rewards = [];
@@ -33,33 +34,33 @@ function renderRewards(list) {
   const tbody = document.getElementById('rewards-tbody');
   if (!tbody) return;
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="8"><div class="es"><i class="fas fa-gift"></i>No reward claims yet</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-gift"></i>No reward claims yet</div></td></tr>';
     return;
   }
   const sb = s => ({
-    pending:   '<span class="badge bg-warn">Pending</span>',
-    approved:  '<span class="badge bg-inf">Approved</span>',
-    delivered: '<span class="badge bg-ok">Delivered</span>',
-    rejected:  '<span class="badge bg-err">Rejected</span>'
-  }[s] || `<span class="badge bg-mu">${esc(s)}</span>`);
+    pending:   '<span class="badge badge-amber">Pending</span>',
+    approved:  '<span class="badge badge-blue">Approved</span>',
+    delivered: '<span class="badge badge-green">Delivered</span>',
+    rejected:  '<span class="badge badge-red">Rejected</span>'
+  }[s] || `<span class="badge badge-muted">${esc(s)}</span>`);
 
   tbody.innerHTML = list.map(r => `
     <tr>
-      <td style="color:var(--t);font-weight:700">${esc(r.displayName||'—')}</td>
-      <td class="mono">${esc(r.phoneNumber||'—')}</td>
+      <td style="color:var(--text);font-weight:700">${esc(r.displayName||'—')}</td>
+      <td class="td-mono">${esc(r.phoneNumber||'—')}</td>
       <td>${esc(r.networkProvider||'—')}</td>
-      <td style="color:var(--warn);font-weight:800">${esc(r.rewardType||'—')}</td>
+      <td style="color:var(--amber);font-weight:800">${esc(r.rewardType||'—')}</td>
       <td>${esc(r.type||'—')}</td>
       <td>${sb(r.status)}</td>
-      <td style="color:var(--mu)">${fmtDate(r.createdAt)}</td>
+      <td style="color:var(--text-3)">${fmtDate(r.createdAt)}</td>
       <td>
-        <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <div class="row-actions">
           ${r.status==='pending'
-            ? `<button class="btn btn-ok btn-xs"  onclick="window._adminRewards.updateReward('${r.id}','approved')">Approve</button>
-               <button class="btn btn-err btn-xs" onclick="window._adminRewards.updateReward('${r.id}','rejected')">Reject</button>`
+            ? `<button class="btn btn-success btn-sm"  onclick="window._adminRewards.updateReward('${r.id}','approved')">Approve</button>
+               <button class="btn btn-danger btn-sm" onclick="window._adminRewards.updateReward('${r.id}','rejected')">Reject</button>`
             : ''}
           ${r.status==='approved'
-            ? `<button class="btn btn-pr btn-xs"  onclick="window._adminRewards.updateReward('${r.id}','delivered')">Delivered</button>`
+            ? `<button class="btn btn-primary btn-sm"  onclick="window._adminRewards.updateReward('${r.id}','delivered')">Delivered</button>`
             : ''}
         </div>
       </td>
@@ -81,5 +82,4 @@ export async function updateReward(id, status) {
   });
 }
 
-// Expose to HTML onclick handlers
 window._adminRewards = { updateReward };
