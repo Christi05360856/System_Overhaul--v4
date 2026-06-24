@@ -1,4 +1,4 @@
-// ============================================
+// ===========================================
 // SCRIPTUREQUEST ADMIN — admin-overview.js
 // Overview dashboard section: platform stats,
 // top 3 weekly winners, recent quiz attempts.
