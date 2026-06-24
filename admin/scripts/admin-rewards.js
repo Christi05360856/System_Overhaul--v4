@@ -1,4 +1,4 @@
-// ============================================
+// ===========================================
 // SCRIPTUREQUEST ADMIN — admin-rewards.js
 // Reward claim management section.
 // Non-module script — relies on window.db/fb/helpers
