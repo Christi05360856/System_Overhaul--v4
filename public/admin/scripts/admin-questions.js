@@ -1,5 +1,6 @@
 // ============================================
 // admin-questions.js  — Bible Battle Admin
+// CORRECTED — matches HTML IDs and CSS vars
 // ============================================
 import { db, currentAdmin, esc, toast, showConfirm }
   from './admin-core.js';
@@ -12,7 +13,7 @@ let _questions = [];
 export async function loadQuestions() {
   const tbody = document.getElementById('questions-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--mu);padding:24px">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:24px">Loading…</td></tr>';
   try {
     const snap = await getDocs(query(collection(db,'questions'), orderBy('createdAt','desc')));
     _questions = [];
@@ -38,25 +39,25 @@ function renderQuestions(list) {
   const tbody = document.getElementById('questions-tbody');
   if (!tbody) return;
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="es"><i class="fas fa-question"></i>No questions found</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-question"></i>No questions found</div></td></tr>';
     return;
   }
-  const dc = d => ({ easy:'bg-ok', medium:'bg-inf', hard:'bg-warn', expert:'bg-err' }[d] || 'bg-mu');
+  const dc = d => ({ easy:'badge-green', medium:'badge-blue', hard:'badge-amber', expert:'badge-red' }[d] || 'badge-muted');
   tbody.innerHTML = list.map(q => `
     <tr>
-      <td style="max-width:250px;color:var(--t);font-weight:600">
+      <td style="max-width:250px;color:var(--text);font-weight:600">
         ${esc((q.question||'').slice(0,65))}${(q.question||'').length > 65 ? '…' : ''}
       </td>
-      <td><span class="badge bg-pr">${esc(q.category||'—')}</span></td>
+      <td><span class="badge badge-accent">${esc(q.category||'—')}</span></td>
       <td><span class="badge ${dc(q.difficulty)}">${esc(q.difficulty||'—')}</span></td>
-      <td style="color:var(--mu);font-size:11px">${esc(q.verseReference||'—')}</td>
+      <td style="color:var(--text-3);font-size:11px">${esc(q.verseReference||'—')}</td>
       <td>${q.isActive !== false
-        ? '<span class="badge bg-ok">Active</span>'
-        : '<span class="badge bg-mu">Inactive</span>'}</td>
+        ? '<span class="badge badge-green">Active</span>'
+        : '<span class="badge badge-muted">Inactive</span>'}</td>
       <td>
-        <div style="display:flex;gap:5px">
-          <button class="btn btn-gh btn-xs" onclick="window._adminQ.editQ('${q.id}')"><i class="fas fa-edit"></i></button>
-          <button class="btn btn-err btn-xs" onclick="window._adminQ.deleteQ('${q.id}')"><i class="fas fa-trash"></i></button>
+        <div class="row-actions">
+          <button class="btn btn-ghost btn-sm" onclick="window._adminQ.editQ('${q.id}')"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-danger btn-sm" onclick="window._adminQ.deleteQ('${q.id}')"><i class="fas fa-trash"></i></button>
         </div>
       </td>
     </tr>`).join('');
@@ -68,10 +69,10 @@ export function openAddQ() {
   ['q-text','q-verse','q-explanation'].forEach(id => document.getElementById(id).value = '');
   ['q-category','q-difficulty'].forEach(id => document.getElementById(id).value = '');
   ['opt0','opt1','opt2','opt3'].forEach(id => document.getElementById(id).value = '');
-  document.querySelectorAll('[name="copt"]').forEach(r => r.checked = false);
+  document.querySelectorAll('[name="correct-opt"]').forEach(r => r.checked = false);
   document.getElementById('q-active').value = 'true';
-  document.getElementById('q-err').textContent = '';
-  document.getElementById('q-modal').classList.remove('hidden');
+  document.getElementById('q-modal-error').textContent = '';
+  document.getElementById('question-modal').classList.remove('hidden');
 }
 
 export function editQ(id) {
@@ -89,19 +90,19 @@ export function editQ(id) {
     const el = document.getElementById('opt' + i);
     if (el) el.value = o;
   });
-  const r = document.querySelector(`[name="copt"][value="${q.correctAnswer}"]`);
+  const r = document.querySelector(`[name="correct-opt"][value="${q.correctAnswer}"]`);
   if (r) r.checked = true;
-  document.getElementById('q-err').textContent = '';
-  document.getElementById('q-modal').classList.remove('hidden');
+  document.getElementById('q-modal-error').textContent = '';
+  document.getElementById('question-modal').classList.remove('hidden');
 }
 
 export function closeQModal() {
-  document.getElementById('q-modal').classList.add('hidden');
+  document.getElementById('question-modal').classList.add('hidden');
 }
 
 export async function saveQ() {
   const btn    = document.getElementById('q-save-btn');
-  const errEl  = document.getElementById('q-err');
+  const errEl  = document.getElementById('q-modal-error');
   const editId = document.getElementById('q-edit-id').value;
   const qText  = document.getElementById('q-text').value.trim();
   const cat    = document.getElementById('q-category').value;
@@ -110,7 +111,7 @@ export async function saveQ() {
   const expl   = document.getElementById('q-explanation').value.trim();
   const active = document.getElementById('q-active').value === 'true';
   const opts   = ['opt0','opt1','opt2','opt3'].map(id => document.getElementById(id).value.trim());
-  const corrEl = document.querySelector('[name="copt"]:checked');
+  const corrEl = document.querySelector('[name="correct-opt"]:checked');
   errEl.textContent = '';
   if (!qText)           return errEl.textContent = 'Question text is required.';
   if (!cat)             return errEl.textContent = 'Category is required.';
