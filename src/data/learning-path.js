@@ -58,10 +58,10 @@ import { kings1 }        from './kings1.js';
 // import { malachi }       from './malachi.js';
 
 // ── THE GOSPELS ─────────────────────────────
-// import { matthew }       from './matthew.js';
+import { matthew }       from './matthew.js';
 // import { mark }          from './mark.js';
 // import { luke }          from './luke.js';
-// import { john }          from './john.js';
+import { john }          from './john.js';
 
 // ── ACTS & EPISTLES ─────────────────────────
 // import { acts }          from './acts.js';
@@ -148,10 +148,10 @@ export const learningPath = {
   // ...malachi,
 
   // ── THE GOSPELS ──
-  // ...matthew,
+  ...matthew,
   // ...mark,
   // ...luke,
-  // ...john,
+  ...john,
 
   // ── ACTS & EPISTLES ──
   // ...acts,
