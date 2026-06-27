@@ -231,7 +231,7 @@ export const amos = {
         "question": "In Amos 7:14-15, how does Amos describe himself?",
         "options": [
           "'I am a prophet, trained in the school of the prophets at Bethel.'",
-          "'I was neither a prophet nor the son of a prophet, but I was a shepherd, and I also took care of sycamore-fig trees. But the Lord took me from tending the flock and said to me, "Go, prophesy to my people Israel."'",
+          "'I was neither a prophet nor the son of a prophet, but I was a shepherd, and I also took care of sycamore-fig trees. But the Lord took me from tending the flock and said to me, ‘Go, prophesy to my people Israel.’'",
           "'I am a Levite, set apart for the service of the Lord from my birth.'",
           "'I am a scribe, learned in the law and the writings of the former prophets.'"
         ],
