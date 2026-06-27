@@ -5,7 +5,7 @@ export const amos = {
     "passageRef": "Amos 1:1-2:16",
     "studyCard": {
       "title": "For Three Sins, Even for Four — The Lion Has Roared",
-      "hook": "Amos, a shepherd from Tekoa, prophesied during the reigns of Uzziah and Jeroboam II — and he began by pronouncing judgment on six nations before turning to Israel and Judah.",
+      "hook": "Amos, a shepherd from Tekoa, prophesied during the reigns of Uzziah and Jeroboam II ",
       "keyTakeaways": [
         "The words of Amos came during the reigns of Uzziah king of Judah and Jeroboam son of Jehoash king of Israel, two years before the earthquake.",
         "The Lord roared from Zion and thundered from Jerusalem; the pastures of the shepherds dried up.",
@@ -99,7 +99,7 @@ export const amos = {
     "passageRef": "Amos 3:1-5:27",
     "studyCard": {
       "title": "You Only Have I Chosen — Therefore I Will Punish You",
-      "hook": "Amos declared that Israel's unique privilege as God's chosen people made their punishment inevitable — and he called them to seek the Lord and live before it was too late.",
+      "hook": "Amos declared that Israel's unique privilege as God's chosen people made their punishment inevitable.",
       "keyTakeaways": [
         "The Lord said 'You only have I chosen of all the families of the earth; therefore I will punish you for all your sins.'",
         "Two cannot walk together unless they have agreed; the lion does not roar in its den without having caught its prey.",
@@ -193,7 +193,7 @@ export const amos = {
     "passageRef": "Amos 6:1-7:17",
     "studyCard": {
       "title": "Woe to You Who Are Complacent in Zion",
-      "hook": "Amos pronounced woe on the complacent leaders of Zion and Samaria, then described five visions of judgment — culminating in his confrontation with the priest Amaziah at Bethel.",
+      "hook": "Amos pronounced woe on the complacent leaders of Zion and Samaria, then described five visions of judgment.",
       "keyTakeaways": [
         "Woe to those who are complacent in Zion and feel secure on Mount Samaria, the notable men of the foremost nation.",
         "They lived in houses of ivory, lounged on beds, ate the best lambs and calves, and anointed themselves with finest oils — but were not grieved over the ruin of Joseph.",
