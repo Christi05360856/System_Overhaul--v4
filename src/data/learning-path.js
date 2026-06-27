@@ -39,12 +39,12 @@ import { kings1 }        from './kings1.js';
 // ── MAJOR PROPHETS ──────────────────────────
 // import { isaiah }        from './isaiah.js';
 // import { jeremiah }      from './jeremiah.js';
-// import { lamentations }  from './lamentations.js';
+import { lamentations }  from './lamentations.js';
 // import { ezekiel }       from './ezekiel.js';
-// import { daniel }        from './daniel.js';
+import { daniel }        from './daniel.js';
 
 // ── MINOR PROPHETS ──────────────────────────
-// import { hosea }         from './hosea.js';
+import { hosea }         from './hosea.js';
 import { joel }          from './joel.js';
 import { amos }          from './amos.js';
 import { obadiah }       from './obadiah.js';
@@ -59,7 +59,7 @@ import { malachi }       from './malachi.js';
 
 // ── THE GOSPELS ─────────────────────────────
 import { matthew }       from './matthew.js';
-// import { mark }          from './mark.js';
+import { mark }          from './mark.js';
 // import { luke }          from './luke.js';
 import { john }          from './john.js';
 
@@ -129,12 +129,12 @@ export const learningPath = {
   // ── MAJOR PROPHETS ──
   // ...isaiah,
   // ...jeremiah,
-  // ...lamentations,
+  ...lamentations,
   // ...ezekiel,
-  // ...daniel,
+  ...daniel,
 
   // ── MINOR PROPHETS ──
-  // ...hosea,
+  ...hosea,
   ...joel,
   ...amos,
   ...obadiah,
@@ -149,7 +149,7 @@ export const learningPath = {
 
   // ── THE GOSPELS ──
   ...matthew,
-  // ...mark,
+  ...mark,
   // ...luke,
   ...john,
 
