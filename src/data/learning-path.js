@@ -45,17 +45,17 @@ import { kings1 }        from './kings1.js';
 
 // ── MINOR PROPHETS ──────────────────────────
 // import { hosea }         from './hosea.js';
-// import { joel }          from './joel.js';
-// import { amos }          from './amos.js';
+import { joel }          from './joel.js';
+import { amos }          from './amos.js';
 import { obadiah }       from './obadiah.js';
-// import { jonah }         from './jonah.js';
-// import { micah }         from './micah.js';
+import { jonah }         from './jonah.js';
+import { micah }         from './micah.js';
 import { nahum }         from './nahum.js';
-// import { habakkuk }      from './habakkuk.js';
-// import { zephaniah }     from './zephaniah.js';
+import { habakkuk }      from './habakkuk.js';
+import { zephaniah }     from './zephaniah.js';
 import { haggai }        from './haggai.js';
 // import { zechariah }     from './zechariah.js';
-// import { malachi }       from './malachi.js';
+import { malachi }       from './malachi.js';
 
 // ── THE GOSPELS ─────────────────────────────
 import { matthew }       from './matthew.js';
@@ -76,7 +76,7 @@ import { john }          from './john.js';
 // import { thessalonians2 } from './thessalonians2.js';
 // import { timothy1 }      from './timothy1.js';
 // import { timothy2 }      from './timothy2.js';
-// import { titus }         from './titus.js';
+import { titus }         from './titus.js';
 import { philemon }      from './philemon.js';
 // import { hebrews }       from './hebrews.js';
 // import { james }         from './james.js';
@@ -135,17 +135,17 @@ export const learningPath = {
 
   // ── MINOR PROPHETS ──
   // ...hosea,
-  // ...joel,
-  // ...amos,
+  ...joel,
+  ...amos,
   ...obadiah,
-  // ...jonah,
-  // ...micah,
+  ...jonah,
+  ...micah,
   ...nahum,
-  // ...habakkuk,
-  // ...zephaniah,
+  ...habakkuk,
+  ...zephaniah,
   ...haggai,
   // ...zechariah,
-  // ...malachi,
+  ...malachi,
 
   // ── THE GOSPELS ──
   ...matthew,
@@ -166,7 +166,7 @@ export const learningPath = {
   // ...thessalonians2,
   // ...timothy1,
   // ...timothy2,
-  // ...titus,
+  ...titus,
   ...philemon,
   // ...hebrews,
   // ...james,
