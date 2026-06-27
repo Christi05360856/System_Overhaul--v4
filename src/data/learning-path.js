@@ -46,7 +46,7 @@ import { kings1 }        from './kings1.js';
 // ── MINOR PROPHETS ──────────────────────────
 // import { hosea }         from './hosea.js';
 import { joel }          from './joel.js';
-import { amos }          from './amos.js';
+// import { amos }          from './amos.js';
 import { obadiah }       from './obadiah.js';
 import { jonah }         from './jonah.js';
 import { micah }         from './micah.js';
@@ -136,7 +136,7 @@ export const learningPath = {
   // ── MINOR PROPHETS ──
   // ...hosea,
   ...joel,
-  ...amos,
+  // ...amos,
   ...obadiah,
   ...jonah,
   ...micah,
