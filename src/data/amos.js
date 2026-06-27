@@ -5,7 +5,7 @@ export const amos = {
     "passageRef": "Amos 1:1-2:16",
     "studyCard": {
       "title": "For Three Sins, Even for Four — The Lion Has Roared",
-      "hook": "Amos, a shepherd from Tekoa, prophesied during the reigns of Uzziah and Jeroboam II ",
+      "hook": "Amos, a shepherd from Tekoa, prophesied during the reigns of Uzziah and Jeroboam II.",
       "keyTakeaways": [
         "The words of Amos came during the reigns of Uzziah king of Judah and Jeroboam son of Jehoash king of Israel, two years before the earthquake.",
         "The Lord roared from Zion and thundered from Jerusalem; the pastures of the shepherds dried up.",
