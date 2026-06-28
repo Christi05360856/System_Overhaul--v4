@@ -45,8 +45,8 @@ const SECTION_DEFS = [
     title: 'Historical Books',
     theme: 'Israel in the Promised Land through exile and return',
     order: 2,
-    bookCodes: ['JOS', 'JDG', 'RUT', 'SA1', 'SA2', 'KG1', 'KG2',
-                'CH1', 'CH2', 'EZR', 'NEH', 'EST']
+    bookCodes: ['JOS', 'JDG', 'RUT', '1SA', '2SA', '1KI', '2KI',
+                '1CH', '2CH', 'EZR', 'NEH', 'EST']
   },
   {
     id: 'section-3',
@@ -82,9 +82,9 @@ const SECTION_DEFS = [
     title: 'Acts & The Epistles',
     theme: 'The early church, doctrine, Christian living',
     order: 7,
-    bookCodes: ['ACT', 'ROM', 'CO1', 'CO2', 'GAL', 'EPH', 'PHP',
-                'COL', 'TH1', 'TH2', 'TI1', 'TI2', 'TIT', 'PHM',
-                'HEB', 'JAS', 'PE1', 'PE2', 'JN1', 'JN2', 'JN3', 'JUD']
+    bookCodes: ['ACT', 'ROM', '1CO', '2CO', 'GAL', 'EPH', 'PHP',
+                'COL', '1TH', '2TH', '1TI', '2TI', 'TIT', 'PHM',
+                'HEB', 'JAS', '1PE', '2PE', '1JN', '2JN', '3JN', 'JUD']
   },
   {
     id: 'section-8',
@@ -98,19 +98,19 @@ const SECTION_DEFS = [
 // Book code -> full book name (for display only)
 const BOOK_NAMES = {
   GEN: 'Genesis', EXO: 'Exodus', LEV: 'Leviticus', NUM: 'Numbers', DEU: 'Deuteronomy',
-  JOS: 'Joshua', JDG: 'Judges', RUT: 'Ruth', SA1: '1 Samuel', SA2: '2 Samuel',
-  KG1: '1 Kings', KG2: '2 Kings', CH1: '1 Chronicles', CH2: '2 Chronicles',
+  JOS: 'Joshua', JDG: 'Judges', RUT: 'Ruth', '1SA': '1 Samuel', '2SA': '2 Samuel',
+  '1KI': '1 Kings', '2KI': '2 Kings', '1CH': '1 Chronicles', '2CH': '2 Chronicles',
   EZR: 'Ezra', NEH: 'Nehemiah', EST: 'Esther',
   JOB: 'Job', PSA: 'Psalms', PRO: 'Proverbs', ECC: 'Ecclesiastes', SOS: 'Song of Solomon',
   ISA: 'Isaiah', JER: 'Jeremiah', LAM: 'Lamentations', EZK: 'Ezekiel', DAN: 'Daniel',
   HOS: 'Hosea', JOL: 'Joel', AMO: 'Amos', OBA: 'Obadiah', JON: 'Jonah', MIC: 'Micah',
   NAH: 'Nahum', HAB: 'Habakkuk', ZEP: 'Zephaniah', HAG: 'Haggai', ZEC: 'Zechariah', MAL: 'Malachi',
   MAT: 'Matthew', MRK: 'Mark', LUK: 'Luke', JHN: 'John',
-  ACT: 'Acts', ROM: 'Romans', CO1: '1 Corinthians', CO2: '2 Corinthians',
+  ACT: 'Acts', ROM: 'Romans', '1CO': '1 Corinthians', '2CO': '2 Corinthians',
   GAL: 'Galatians', EPH: 'Ephesians', PHP: 'Philippians', COL: 'Colossians',
-  TH1: '1 Thessalonians', TH2: '2 Thessalonians', TI1: '1 Timothy', TI2: '2 Timothy',
+  '1TH': '1 Thessalonians', '2TH': '2 Thessalonians', '1TI': '1 Timothy', '2TI': '2 Timothy',
   TIT: 'Titus', PHM: 'Philemon', HEB: 'Hebrews', JAS: 'James',
-  PE1: '1 Peter', PE2: '2 Peter', JN1: '1 John', JN2: '2 John', JN3: '3 John', JUD: 'Jude',
+  '1PE': '1 Peter', '2PE': '2 Peter', '1JN': '1 John', '2JN': '2 John', '3JN': '3 John', JUD: 'Jude',
   REV: 'Revelation'
 };
 
@@ -369,3 +369,4 @@ export default {
   getSectionById,
   _resetCaches
 };
+      
