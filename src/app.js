@@ -770,6 +770,45 @@ async function initRewardsScreen() {
   const config = await getRewardsConfig();
   const points = stats.totalXp || 0;
 
+  // Get container references
+  const activeView   = document.getElementById('rewards-active-view');
+  const inactiveView = document.getElementById('rewards-inactive-view');
+
+  if (!config.enabled) {
+    // ── REWARDS DISABLED: Show full "Coming Soon" screen ──
+    if (activeView)   activeView.classList.add('hidden');
+    if (inactiveView) inactiveView.classList.remove('hidden');
+
+    // Event name or default
+    const eventName = config.eventName || 'Special Event';
+    const eventEl = document.getElementById('ri-event-name');
+    if (eventEl) eventEl.textContent = eventName;
+
+    // Prize display
+    const prizeEl = document.getElementById('ri-prize-display');
+    if (prizeEl) {
+      prizeEl.textContent = config.currentPrize || 'Amazing prizes';
+    }
+
+    // Status message
+    const statusEl = document.getElementById('ri-status-message');
+    if (statusEl) {
+      statusEl.textContent = config.currentPrize
+        ? `Prizes will be unlocked soon! Keep earning XP and badges — you'll be ready when ${eventName} begins.`
+        : `Cash prizes are currently disabled. Keep building your XP, streaks, and badges. Rewards will return for special events!`;
+    }
+
+    // Still show their current points (for motivation)
+    const ptsEl = document.getElementById('ri-user-points');
+    if (ptsEl) ptsEl.textContent = points.toLocaleString();
+
+    return;
+  }
+
+  // ── REWARDS ENABLED: Show full milestone system ──
+  if (activeView)   activeView.classList.remove('hidden');
+  if (inactiveView) inactiveView.classList.add('hidden');
+
   const ptEl = document.getElementById('rewards-points');
   if (ptEl) ptEl.textContent = points.toLocaleString();
 
@@ -779,33 +818,27 @@ async function initRewardsScreen() {
     points
   );
 
-  // Show season-inactive banner when rewards are off
+  // Show active season banner
   const bannerEl = document.getElementById('rewards-season-banner');
   if (bannerEl) {
-    if (!config.enabled) {
-      bannerEl.textContent = config.eventName
-        ? `🏆 ${config.eventName} — prizes coming soon!`
-        : '🏆 Cash prizes will be enabled for special events. Stay tuned!';
-      bannerEl.classList.remove('hidden');
-    } else {
-      bannerEl.classList.add('hidden');
-    }
+    bannerEl.textContent = config.eventName
+      ? `🏆 ${config.eventName} — prizes are active!`
+      : '🏆 Cash prizes are currently enabled. Claim your rewards!';
+    bannerEl.classList.remove('hidden');
   }
 
-  // Claim buttons only shown when rewards are enabled
+  // Claim buttons active
   const sent = await getSentMilestones(user.uid);
   renderRewardTiers(
     document.getElementById('reward-tiers-container'),
     points, [], sent,
-    config.enabled
-      ? async (threshold, rewardType) => {
-          try {
-            await claimMilestoneReward(threshold, rewardType);
-            showToast("Reward claimed! We'll be in touch. 🎉", 'success');
-            initRewardsScreen();
-          } catch (err) { showToast(err.message, 'error'); }
-        }
-      : null   // null = no claim callback = buttons disabled/hidden by renderRewardTiers
+    async (threshold, rewardType) => {
+      try {
+        await claimMilestoneReward(threshold, rewardType);
+        showToast("Reward claimed! We'll be in touch. 🎉", 'success');
+        initRewardsScreen();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
   );
 }
 
