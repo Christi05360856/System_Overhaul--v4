@@ -1,7 +1,7 @@
-// ============================================================
+// ==================================================
 // app.js — Bible Battle
 // Clean rewrite: corrected auth flow + configurable rewards
-// ============================================================
+// =================================================
 
 import { initAuthListener, login, register,
          logout, updateProfile_,
