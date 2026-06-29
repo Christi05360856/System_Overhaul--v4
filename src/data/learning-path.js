@@ -31,7 +31,7 @@ import { esther }        from './esther.js';
 
 // ── WISDOM & POETRY ─────────────────────────
 import { job }           from './job.js';
-//import { psalms }        from './psalms.js';
+import { psalms }        from './psalms.js';
 import { proverbs }      from './proverbs.js';
 import { ecclesiastes }  from './ecclesiastes.js';
 import { songofsongs }   from './songofsongs.js';
@@ -121,7 +121,7 @@ export const learningPath = {
 
   // ── WISDOM & POETRY ──
   ...job,
-  //...psalms,
+  ...psalms,
   ...proverbs,
   ...ecclesiastes,
   ...songofsongs,
