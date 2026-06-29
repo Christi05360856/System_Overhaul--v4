@@ -1,8 +1,8 @@
-// ============================================
+// =====================================
 // admin-rewards.js  — Bible Battle Admin
 // CORRECTED — matches HTML IDs and CSS vars
 // ADDED: Rewards Configuration Panel (toggle on/off)
-// ============================================
+// =====================================
 import { db, currentAdmin, fmtDate, esc, toast, showConfirm }
   from './admin-core.js';
 import { collection, doc, query, orderBy, getDocs, getDoc, updateDoc, setDoc, serverTimestamp }
