@@ -453,36 +453,52 @@ async function openDailyChallenge() {
   const user = getCurrentUser();
   if (!user) { openAuthModal(); return; }
 
-  const stats  = getUserStats();
+  // ── Step 1: Fill in stats from memory (instant — no network call) ──
+  const stats = getUserStats();
   const streakEl = document.getElementById('daily-modal-streak');
   if (streakEl) {
     const s = stats?.currentStreak || 0;
     streakEl.textContent = s > 0 ? `🔥 ${s}-day streak` : '🌱 No streak yet';
   }
-
   const ptsEl = document.getElementById('daily-modal-weekly-pts');
   if (ptsEl) ptsEl.textContent = `${(stats?.weeklyPoints || 0).toLocaleString()} pts this week`;
 
-  const limit = await checkDailyLimit();
-  const avail = document.getElementById('daily-modal-available');
-  const lim   = document.getElementById('daily-modal-limit');
-  const res   = document.getElementById('daily-modal-resume');
-
+  const res = document.getElementById('daily-modal-resume');
   if (res) res.classList.toggle('hidden', !hasResumableQuiz());
 
-  if (limit.blocked) {
-    avail?.classList.add('hidden');
-    lim?.classList.remove('hidden');
-    _startDailyModalCountdown(limit.nextQuizTime);
-  } else {
+  // ── Step 2: Show modal IMMEDIATELY — don't wait for the limit check ──
+  document.getElementById('daily-challenge-modal')?.classList.remove('hidden');
+
+  // ── Step 3: Show a loading state inside the modal while limit check runs ──
+  const avail   = document.getElementById('daily-modal-available');
+  const lim     = document.getElementById('daily-modal-limit');
+  const startBtn = document.getElementById('daily-modal-start-btn');
+  avail?.classList.add('hidden');
+  lim?.classList.add('hidden');
+  if (startBtn) { startBtn.disabled = true; startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking…'; }
+
+  // ── Step 4: Run the Firestore check in the background ──
+  try {
+    const limit = await checkDailyLimit();
+
+    if (limit.blocked) {
+      avail?.classList.add('hidden');
+      lim?.classList.remove('hidden');
+      _startDailyModalCountdown(limit.nextQuizTime);
+    } else {
+      avail?.classList.remove('hidden');
+      lim?.classList.add('hidden');
+      const note = document.getElementById('daily-modal-attempts-note');
+      if (note) note.textContent = limit.remaining === 2
+        ? '2 attempts remaining today' : '1 attempt remaining today';
+      if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = '<i class="fas fa-play"></i> Start Quiz'; }
+    }
+  } catch (e) {
+    // If the check fails just let them try — quiz will handle it
     avail?.classList.remove('hidden');
     lim?.classList.add('hidden');
-    const note = document.getElementById('daily-modal-attempts-note');
-    if (note) note.textContent = limit.remaining === 2
-      ? '2 attempts remaining today' : '1 attempt remaining today';
+    if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = '<i class="fas fa-play"></i> Start Quiz'; }
   }
-
-  document.getElementById('daily-challenge-modal')?.classList.remove('hidden');
 }
 
 function closeDailyModal() {
@@ -1050,8 +1066,19 @@ async function handleStartQuiz(resume = false) {
   const user = getCurrentUser();
   if (!user) { openAuthModal(); return; }
 
-  const startBtn = document.getElementById('start-quiz-btn');
-  if (startBtn) { startBtn.disabled = true; startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting…'; }
+  // ── Lock ALL start buttons immediately so user can't tap twice ──
+  const allStartBtns = [
+    document.getElementById('start-quiz-btn'),
+    document.getElementById('daily-modal-start-btn'),
+    document.getElementById('resume-quiz-btn'),
+    document.getElementById('daily-modal-resume-btn')
+  ];
+  allStartBtns.forEach(btn => {
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting…'; }
+  });
+
+  // ── Show a full-screen loading overlay so nothing else is tappable ──
+  _showQuizLoadingOverlay();
 
   try {
     let sessionData;
@@ -1059,7 +1086,10 @@ async function handleStartQuiz(resume = false) {
       sessionData = loadQuizStateFromStorage();
       if (!sessionData) {
         showToast('No resumable quiz found. Starting fresh.', 'info');
-        if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = '<i class="fas fa-play"></i> Start Quiz'; }
+        _hideQuizLoadingOverlay();
+        allStartBtns.forEach(btn => {
+          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-play"></i> Start Quiz'; }
+        });
         return handleStartQuiz(false);
       }
     } else {
@@ -1088,8 +1118,37 @@ async function handleStartQuiz(resume = false) {
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
-    if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = '<i class="fas fa-play"></i> Start Quiz'; }
+    _hideQuizLoadingOverlay();
+    allStartBtns.forEach(btn => {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-play"></i> Start Quiz'; }
+    });
   }
+      }
+
+
+function _showQuizLoadingOverlay() {
+  let overlay = document.getElementById('quiz-loading-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'quiz-loading-overlay';
+    overlay.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:99998',
+      'background:rgba(0,0,0,0.55)', 'backdrop-filter:blur(3px)',
+      'display:flex', 'flex-direction:column',
+      'align-items:center', 'justify-content:center', 'gap:16px'
+    ].join(';');
+    overlay.innerHTML = `
+      <div style="width:52px;height:52px;border:4px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+      <div style="color:#fff;font-size:15px;font-weight:700;font-family:inherit;letter-spacing:0.2px">Preparing your quiz…</div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display = 'flex';
+}
+
+function _hideQuizLoadingOverlay() {
+  const overlay = document.getElementById('quiz-loading-overlay');
+  if (overlay) overlay.style.display = 'none';
 }
 
 async function handleQuizComplete(result) {
